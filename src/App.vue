@@ -1,8 +1,5 @@
 <template>
   <v-app>
-    <v-app-bar>
-      <v-app-bar-title>{{ databasesStore.activeContext?.name || '(no database selected)' }}</v-app-bar-title>
-    </v-app-bar>
     <v-main>
       <router-view></router-view>
     </v-main>

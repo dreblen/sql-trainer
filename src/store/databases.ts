@@ -128,7 +128,7 @@ export const useDatabasesStore = defineStore('databases', {
             this.contexts.push(context)
             return context
         },
-        async create(name: string): Promise<DatabaseContext> {
+        async create(name: string, originalDefinition = ''): Promise<DatabaseContext> {
             // Make sure it's safe to proceed
             if (this.BrowserDB === null || this.SqlJs === null) {
                 throw 'Must call init() before creating a database'
@@ -136,6 +136,11 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Create an empty database
             const newDB = new this.SqlJs.Database()
+
+            // Apply the original definition commands if they were given
+            if (originalDefinition !== '') {
+                newDB.run(originalDefinition)
+            }
 
             // Create a browser database equivalent
             const def = this.exportSqlJsToJSON(newDB)
