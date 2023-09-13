@@ -21,6 +21,40 @@
                         />
                     </v-col>
                 </v-row>
+                <v-row
+                    v-if="databasesStore.activeContextId !== -1"
+                    class="my-0"
+                >
+                    <v-col>
+                        <v-expansion-panels>
+                            <v-expansion-panel>
+                                <v-expansion-panel-title>Database Controls</v-expansion-panel-title>
+                                <v-expansion-panel-text>
+                                    <v-row>
+                                        <v-col>
+                                            <v-btn
+                                                block
+                                                prepend-icon="mdi-undo"
+                                                @click="databasesStore.restoreOriginalToBrowser(databasesStore.activeContextId)"
+                                            >
+                                                Restore to Original
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col>
+                                            <v-btn
+                                                block
+                                                prepend-icon="mdi-delete"
+                                                @click="databasesStore.delete(databasesStore.activeContextId)"
+                                            >
+                                                Remove Completely
+                                            </v-btn>
+                                        </v-col>
+                                    </v-row>
+                                </v-expansion-panel-text>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </v-col>
+                </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null">
                     <v-tabs>
                         <v-tab

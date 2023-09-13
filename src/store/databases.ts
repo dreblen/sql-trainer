@@ -128,6 +128,34 @@ export const useDatabasesStore = defineStore('databases', {
             this.contexts.push(context)
             return context
         },
+        async delete(id: number) {
+            // Make sure it's safe to proceed
+            if (this.BrowserDB === null || this.SqlJs === null) {
+                throw 'Must call init() before deleting a database'
+            }
+
+            // Find the correct database context
+            const context = this.contexts.find((context) => context.id === id)
+            if (!context) {
+                throw `Could not find database context with ID ${id}`
+            }
+
+            // Delete the browser database
+            await this.BrowserDB.delete(id)
+
+            // Close the SQL.js database
+            context.SqlJsDatabase.close()
+
+            // Remove the context
+            this.contexts = this.contexts.filter((context) => {
+                return context.id !== id
+            })
+
+            // Change the active context if we just removed it
+            if (this.activeContextId === id) {
+                this.activeContextId = (this.contexts.length > 0) ? this.contexts[0].id : -1
+            }
+        },
         async create(name: string, originalDefinition = ''): Promise<DatabaseContext> {
             // Make sure it's safe to proceed
             if (this.BrowserDB === null || this.SqlJs === null) {
@@ -191,6 +219,27 @@ export const useDatabasesStore = defineStore('databases', {
         exportSqlJsToJSON(database: SqlJsTypes.Database) {
             const asArray = Array.from(database.export())
             return JSON.stringify(asArray)
+        },
+        async restoreOriginalToBrowser(id: number) {
+            // Make sure it's safe to proceed
+            if (this.SqlJs === null) {
+                throw 'Must call init() before restoring a database'
+            }
+
+            // Find the correct database context
+            const context = this.contexts.find((context) => context.id === id)
+            if (!context) {
+                throw `Could not find database context with ID ${id}`
+            }
+
+            // Close the current version of the SQL.js database
+            context.SqlJsDatabase.close()
+
+            // Replace the SQL.js database with its original
+            context.SqlJsDatabase = new this.SqlJs.Database(JSON.parse(context.BrowserDatabase.originalDefinition))
+
+            // Store our "updated" definition as the new current
+            this.saveChangesToBrowser(id)
         },
         async saveChangesToBrowser(id: number) {
             // Find the correct database context

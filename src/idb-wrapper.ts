@@ -249,4 +249,26 @@ export class IDBWrapper {
             })
         })
     }
+
+    /**
+     * Remove specific value(s) from the wrapped database.
+     * 
+     * @param query The key or range to retrieve.
+     * @returns Promise of nothing
+     */
+    public delete (key: IDBValidKey|IDBKeyRange): Promise<undefined> {
+        return new Promise((resolve, reject) => {
+            this.getTransaction('readwrite')
+            .then((tran) => {
+                const store = tran.objectStore(this.storeName)
+                const req = store.delete(key)
+                req.onsuccess = (ev: any) => {
+                    resolve(undefined)
+                }
+                req.onerror = (ev: any) => {
+                    reject(ev)
+                }
+            })
+        })
+    }
 }
