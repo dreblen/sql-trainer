@@ -1,6 +1,9 @@
 <template>
     <v-container class="fill-height">
-        <v-row class="fill-height">
+        <v-row
+            class="fill-height"
+            style="width: 100%;"
+        >
             <v-col>
                 <v-row>
                     <v-col>
@@ -78,7 +81,13 @@
                     </v-row>
                     <v-row>
                         <v-col>
-                            <v-btn @click="databasesStore.run">Run Query</v-btn>
+                            <v-btn
+                                color="primary"
+                                block
+                                @click="databasesStore.run"
+                            >
+                                Run Query
+                            </v-btn>
                         </v-col>
                     </v-row>
                     <template
