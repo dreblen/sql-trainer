@@ -262,7 +262,7 @@ export class IDBWrapper {
             .then((tran) => {
                 const store = tran.objectStore(this.storeName)
                 const req = store.delete(key)
-                req.onsuccess = (ev: any) => {
+                req.onsuccess = () => {
                     resolve(undefined)
                 }
                 req.onerror = (ev: any) => {
