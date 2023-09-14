@@ -85,7 +85,11 @@ class DatabaseContext {
             FROM sqlite_master
             WHERE type = 'table'
         `)
-        return results[0].values.map((row) => row[0] as string).sort()
+        if (results.length > 0) {
+            return results[0].values.map((row) => row[0] as string).sort()
+        } else {
+            return []
+        }
     }
 
     /**
