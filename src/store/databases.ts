@@ -53,6 +53,42 @@ class DatabaseContext {
     activeQueryIndex: number
 
     saveTimeoutID: number|null
+
+    /**
+     * Convenience method to create new, empty query.
+     * 
+     * @returns Nothing
+     */
+    public addQuery (): void {
+        this.Queries.push(new DatabaseContextQuery)
+    }
+
+    /**
+     * Convenience method to remove the query at the specified index.
+     * 
+     * @param index The index within the queries list to remove.
+     * @returns Nothing
+     */
+    public removeQuery (index: number): void {
+        // If the index is invalid, do nothing
+        if (index < 0 || index >= this.Queries.length) {
+            return
+        }
+
+        // If this is the last query, reset it rather than deleting it
+        if (this.Queries.length === 1) {
+            this.Queries[index] = new DatabaseContextQuery
+            return
+        }
+
+        // Make sure our active query will still be valid after removing
+        if (this.activeQueryIndex >= index) {
+            this.activeQueryIndex--
+        }
+
+        // Remove the query
+        this.Queries.splice(index, 1)
+    }
 }
 
 export const useDatabasesStore = defineStore('databases', {

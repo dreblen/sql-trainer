@@ -59,15 +59,43 @@
                     </v-col>
                 </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null">
-                    <v-tabs>
-                        <v-tab
-                            v-for="(query,i) in databasesStore.activeContext.Queries"
-                            :key="i"
+                    <v-row>
+                        <v-col
+                            cols="9"
+                            sm="10"
+                            md="11"
                         >
-                            Query {{ i + 1 }}
-                        </v-tab>
-                        <v-tab>+</v-tab>
-                    </v-tabs>
+                            <v-tabs
+                                v-model="activeTabIndex"
+                                color="primary"
+                                center-active
+                                show-arrows
+                            >
+                                <v-tab
+                                    v-for="(query,i) in databasesStore.activeContext.Queries"
+                                    :key="i"
+                                >
+                                    Query {{ i + 1 }}
+                                    <v-btn
+                                        icon="mdi-close"
+                                        size="x-small"
+                                        variant="plain"
+                                        @click.stop="databasesStore.activeContext.removeQuery(i)"
+                                    />
+                                </v-tab>
+                            </v-tabs>
+                        </v-col>
+                        <v-col
+                            cols="3"
+                            sm="2"
+                            md="1"
+                        >
+                            <v-btn
+                                icon="mdi-plus"
+                                @click="databasesStore.activeContext.addQuery()"
+                            />
+                        </v-col>
+                    </v-row>
                     <v-row style="height: 40vh;">
                         <v-col style="height: 100%;">
                             <v-card style="height: 100%;">
@@ -218,7 +246,9 @@ export default {
             addDatabaseDialogFileLoading: false,
             addDatabaseDialogFiles: [] as Array<File>,
             addDatabaseDialogFileText: '',
-            addDatabaseDialogName: ''
+            addDatabaseDialogName: '',
+
+            activeTabIndex: 0
         }
     },
     computed: {
@@ -242,9 +272,40 @@ export default {
             return (this.addDatabaseDialogFileLoading === false)
                 && (this.addDatabaseDialogFromScratch === true || this.addDatabaseDialogFileText !== '')
                 && (this.addDatabaseDialogName !== '')
+        },
+        activeDatabaseQueryIndex: function () {
+            return this.databasesStore.activeContext?.activeQueryIndex
         }
     },
     watch: {
+        activeDatabaseQueryIndex: function (newIndex: number) {
+            // Nothing to do if this was a change to something unusable
+            if (newIndex === undefined) {
+                return
+            }
+
+            // Make sure our active tab matches the store value
+            if (newIndex !== this.activeTabIndex) {
+                this.activeTabIndex = newIndex
+            }
+        },
+        activeTabIndex: function (newIndex: number) {
+            // Nothing to do if we don't have an active context
+            if (!this.databasesStore.activeContext) {
+                return
+            }
+
+            // If we've been unset (e.g., due to removing a tab), then revert
+            // to whatever the current query index value is on the store side.
+            // Otherwise, set the query index to match the new value if needed.
+            if (newIndex === undefined) {
+                this.activeTabIndex = this.databasesStore.activeContext.activeQueryIndex
+            } else {
+                if (newIndex !== this.databasesStore.activeContext.activeQueryIndex) {
+                    this.databasesStore.activeContext.activeQueryIndex = newIndex
+                }
+            }
+        },
         addDatabaseDialogFiles: async function (files) {
             // If we don't have a selection, there's nothing to do
             if (!files || files.length === 0) {
