@@ -13,6 +13,22 @@ interface TrainerDatabase {
     currentDefinition: string
 }
 
+// Represents a column definition in a table
+interface DatabaseTableColumn {
+    id: number
+    name: string
+    type: string
+    allowNull: boolean
+    default: string
+    isPK: boolean
+}
+
+// Represents a table definition in a database
+interface DatabaseTable {
+    name: string
+    columns: Array<DatabaseTableColumn>
+}
+
 // Represents a single database query (within a database context) along with its
 // potential result artifacts, good or bad
 class DatabaseContextQuery {
@@ -36,6 +52,8 @@ class DatabaseContext {
         this.BrowserDatabase = BrowserDatabase
         this.SqlJsDatabase = SqlJsDatabase
 
+        this.tables = this.getTables()
+
         this.Queries = [
             new DatabaseContextQuery
         ]
@@ -49,10 +67,66 @@ class DatabaseContext {
     BrowserDatabase: TrainerDatabase
     SqlJsDatabase: SqlJsTypes.Database
 
+    tables: Array<DatabaseTable>
+
     Queries: Array<DatabaseContextQuery>
     activeQueryIndex: number
 
     saveTimeoutID: number|null
+
+    /**
+     * Retrieve list of table names in this context.
+     * 
+     * @returns Array of table name strings.
+     */
+    public getTableNames (): Array<string> {
+        const results = this.SqlJsDatabase.exec(`
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+        `)
+        return results[0].values.map((row) => row[0] as string).sort()
+    }
+
+    /**
+     * Retrieve column descriptions for specified table.
+     * 
+     * @param name The name of the table.
+     * @returns Array of column definitions.
+     */
+    public getTableColumns (name: string): Array<DatabaseTableColumn> {
+        // Make sure we'll get results for this table
+        if (this.getTableNames().indexOf(name) === -1) {
+            throw `'${name} is not a valid table name`
+        }
+
+        // Get column information
+        const results = this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
+        return results[0].values.map((row) => ({
+            id: row[0],
+            name: row[1],
+            type: row[2],
+            allowNull: (row[3] == '0') ? true : false,
+            default: row[4],
+            isPK: (row[5] == '1') ? true : false
+        } as DatabaseTableColumn))
+    }
+
+    /**
+     * Retrieve the table/column values in the current context.
+     * 
+     * @returns Array of table objects, with column details.
+     */
+    public getTables (): Array<DatabaseTable> {
+        const tables: Array<DatabaseTable> = []
+        for (const tableName of this.getTableNames()) {
+            tables.push({
+                name: tableName,
+                columns: this.getTableColumns(tableName)
+            })
+        }
+        return tables
+    }
 
     /**
      * Convenience method to create new, empty query.
@@ -331,13 +405,16 @@ export const useDatabasesStore = defineStore('databases', {
                 const newDef = this.exportSqlJsToJSON(context.SqlJsDatabase)
                 const oldDef = context.BrowserDatabase.currentDefinition
 
-                // If there have been changes, update the stored definition
+                // If there have been changes, update the stored definition and
+                // our current table list
                 if (newDef !== oldDef) {
                     context.BrowserDatabase.currentDefinition = newDef
                     const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
                     idb.update(context.id, {
                         currentDefinition: newDef
                     })
+
+                    context.tables = context.getTables()
                 }
 
                 // Clear the timeout value

@@ -25,7 +25,7 @@
                     </v-col>
                 </v-row>
                 <v-row
-                    v-if="databasesStore.activeContextId !== -1"
+                    v-if="databasesStore.activeContext !== null"
                     class="my-0"
                 >
                     <v-col>
@@ -50,6 +50,15 @@
                                                 @click="databasesStore.delete(databasesStore.activeContextId)"
                                             >
                                                 Remove Completely
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col>
+                                            <v-btn
+                                                block
+                                                prepend-icon="mdi-table"
+                                                @click="showTableSummaryDrawer = true"
+                                            >
+                                                Table Summary
                                             </v-btn>
                                         </v-col>
                                     </v-row>
@@ -230,6 +239,43 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-navigation-drawer
+            v-if="databasesStore.activeContext !== null"
+            v-model="showTableSummaryDrawer"
+        >
+            <v-list>
+                <v-list-item
+                    title="Table Summary"
+                >
+                    <template v-slot:append>
+                        <v-btn
+                            icon="mdi-close"
+                            size="x-small"
+                            variant="tonal"
+                            @click="showTableSummaryDrawer = false"
+                        />
+                    </template>
+                </v-list-item>
+                <v-list-group
+                    v-for="table in databasesStore.activeContext.tables"
+                    :value="table.name"
+                >
+                    <template v-slot:activator="{ props }">
+                        <v-list-item
+                            v-bind="props"
+                            :title="table.name"
+                            style="background: grey; color: white;"
+                        />
+                    </template>
+                    <v-list-item
+                        v-for="column in table.columns"
+                        :title="column.name"
+                        :subtitle="`${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}`"
+                        :append-icon="column.isPK ? 'mdi-key' : undefined"
+                    />
+                </v-list-group>
+            </v-list>
+        </v-navigation-drawer>
     </v-container>
 </template>
 
@@ -248,6 +294,8 @@ export default {
             addDatabaseDialogFiles: [] as Array<File>,
             addDatabaseDialogFileText: '',
             addDatabaseDialogName: '',
+
+            showTableSummaryDrawer: false,
 
             activeTabIndex: 0
         }
