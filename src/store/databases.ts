@@ -72,7 +72,6 @@ export const useDatabasesStore = defineStore('databases', {
         },
         activeQuery(): DatabaseContextQuery|null {
             if (this.activeContext === null || this.activeContext.activeQueryIndex < 0 || this.activeContext.activeQueryIndex >= this.activeContext.Queries.length) {
-                // throw `Active query index value (${this.activeContext.activeQueryIndex}) is not valid`
                 return null
             } else {
                 return this.activeContext.Queries[this.activeContext.activeQueryIndex]
