@@ -244,9 +244,17 @@
             v-model="showTableSummaryDrawer"
         >
             <v-list>
-                <v-list-item
-                    title="Table Summary"
-                >
+                <v-list-item>
+                    <v-list-item-title>
+                        <v-text-field
+                            v-model="tableSummaryFilterText"
+                            label="Filter Tables..."
+                            density="compact"
+                            variant="outlined"
+                            :hide-details="true"
+                            class="mr-2"
+                        />
+                    </v-list-item-title>
                     <template v-slot:append>
                         <v-btn
                             icon="mdi-close"
@@ -257,7 +265,7 @@
                     </template>
                 </v-list-item>
                 <v-list-group
-                    v-for="table in databasesStore.activeContext.tables"
+                    v-for="table in filteredTables"
                     :value="table.name"
                 >
                     <template v-slot:activator="{ props }">
@@ -296,6 +304,7 @@ export default {
             addDatabaseDialogName: '',
 
             showTableSummaryDrawer: false,
+            tableSummaryFilterText: '',
 
             activeTabIndex: 0
         }
@@ -324,6 +333,15 @@ export default {
         },
         activeDatabaseQueryIndex: function () {
             return this.databasesStore.activeContext?.activeQueryIndex
+        },
+        filteredTables: function () {
+            if (this.databasesStore.activeContext === null) {
+                return []
+            } else {
+                return this.databasesStore.activeContext.tables.filter(
+                    (table) => table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
+                )
+            }
         }
     },
     watch: {
