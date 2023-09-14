@@ -128,7 +128,7 @@
                                     <v-table
                                         density="compact"
                                         fixed-header
-                                        height="300px"
+                                        :height="(resultset.columns.length > 0) ? '300px' : '100px'"
                                     >
                                         <thead>
                                             <tr>
@@ -136,6 +136,7 @@
                                                     v-for="(colName,i) in resultset.columns"
                                                     :key="i"
                                                     class="text-left"
+                                                    style="background: grey; color: white;"
                                                 >
                                                     {{ colName }}
                                                 </th>
@@ -151,7 +152,7 @@
                                                     :key="j"
                                                     class="text-left"
                                                 >
-                                                    {{ colVal }}
+                                                    {{ (resultset.columns.length > 0) ? colVal : `${colVal} row(s) affected.` }}
                                                 </td>
                                             </tr>
                                         </tbody>

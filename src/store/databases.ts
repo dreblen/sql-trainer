@@ -241,11 +241,47 @@ export const useDatabasesStore = defineStore('databases', {
             activeQuery.results = []
             activeQuery.error = ''
 
-            // Execute the query
+            // Split our query text into individual statements and iterate them
+            // so we have more control over the formatting of the results (i.e.,
+            // we're basically doing the same as SqlJsDatabase.exec() but we
+            // want to do things like include empty result sets)
+            const statements = this.activeContext.SqlJsDatabase.iterateStatements(activeQuery.text)
+            const results: Array<SqlJsTypes.QueryExecResult> = []
             try {
-                activeQuery.results = this.activeContext.SqlJsDatabase.exec(activeQuery.text)
+                // The statement iterator will throw an exception if it
+                // encounters an invalid statement, so the whole loop is in the
+                // try-catch block instead of the individual steps. We can still
+                // use the results we gather up to the point of the error.
+                for (const statement of statements) {
+                    // Store the column names (for SELECT-type queries)
+                    const columns = statement.getColumnNames()
+
+                    // Gather our row data if applicable (for SELECT-type)
+                    const rows = []
+                    while (statement.step()) {
+                        rows.push(statement.get())
+                    }
+
+                    // Get the number of rows affected (for INSERT/UPDATE/etc.)
+                    const numRows = this.activeContext.SqlJsDatabase.getRowsModified()
+
+                    // Store the results of this statement. If there were no
+                    // column headings, we assume it was something where we care
+                    // about the number of rows affected and not the rows.
+                    results.push({
+                        columns,
+                        values: (columns.length > 0) ?
+                            rows :
+                            [[numRows as SqlJsTypes.SqlValue]]
+                    })
+
+                    // Clean up the statement
+                    statement.free()
+                }
             } catch (err) {
                 activeQuery.error = (err as Error).message
+            } finally {
+                activeQuery.results = results
             }
 
             // Save changes to the browser if appropriate (logic is delegated)
