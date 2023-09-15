@@ -334,6 +334,9 @@ export default {
         activeDatabaseQueryIndex: function () {
             return this.databasesStore.activeContext?.activeQueryIndex
         },
+        numDatabaseContexts: function () {
+            return this.databasesStore.contexts.length
+        },
         filteredTables: function () {
             if (this.databasesStore.activeContext === null) {
                 return []
@@ -354,6 +357,11 @@ export default {
             // Make sure our active tab matches the store value
             if (newIndex !== this.activeTabIndex) {
                 this.activeTabIndex = newIndex
+            }
+        },
+        numDatabaseContexts: function (newNum: number) {
+            if (newNum === 0) {
+                this.showAddDatabaseDialog = true
             }
         },
         activeTabIndex: function (newIndex: number) {
@@ -430,6 +438,9 @@ export default {
     },
     async mounted() {
         await this.databasesStore.init()
+        if (this.databasesStore.contexts.length === 0) {
+            this.showAddDatabaseDialog = true
+        }
     },
     components: {
         Codemirror
