@@ -340,8 +340,13 @@ export const useDatabasesStore = defineStore('databases', {
                         rows.push(statement.get())
                     }
 
-                    // Get the number of rows affected (for INSERT/UPDATE/etc.)
-                    const numRows = this.activeContext.SqlJsDatabase.getRowsModified()
+                    // Get the number of rows affected (for INSERT/UPDATE/DELETE
+                    // statements only, not SELECTs or DDL statements)
+                    let numRows = 0
+                    const statementSQL = statement.getSQL().trimStart()
+                    if (statementSQL.startsWith('INSERT') || statementSQL.startsWith('UPDATE') || statementSQL.startsWith('DELETE')) {
+                        numRows = this.activeContext.SqlJsDatabase.getRowsModified()
+                    }
 
                     // Store the results of this statement. If there were no
                     // column headings, we assume it was something where we care
