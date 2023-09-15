@@ -76,6 +76,7 @@ export default {
         await this.databasesStore.clear()
       } finally {
         this.deleteAllIsProcessing = false
+        this.showDetailsDialog = false
       }
     }
   }
