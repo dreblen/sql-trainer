@@ -27,6 +27,25 @@ export class IDBWrapper {
     ////////////////////////////////////////////////////////////////////////////
 
     /**
+     * Completely removes the database and its object stores.
+     * 
+     * @returns null
+     */
+    public deleteDatabase(): Promise<null> {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase(this.dbName)
+
+            // Handle normal success/failure
+            req.onsuccess = (ev: any) => {
+                resolve(null)
+            }
+            req.onerror = (ev: any) => {
+                reject(ev)
+            }
+        })
+    }
+
+    /**
      * Opens and returns the database described by the constructor. If our
      * wrapped data
      * 

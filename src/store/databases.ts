@@ -227,6 +227,23 @@ export const useDatabasesStore = defineStore('databases', {
                 }
             }
         },
+        async clear() {
+            // Nothing to do if we haven't initialized yet
+            if (this.BrowserDB === null) {
+                return
+            }
+
+            // Clear data from our IndexedDB database
+            await this.BrowserDB.deleteDatabase()
+            this.BrowserDB = null
+
+            // Clear our context records
+            this.contexts = []
+            this.activeContextId = -1
+
+            // Re-initialize
+            return this.init()
+        },
         add(database: TrainerDatabase): DatabaseContext {
             // Make sure it's safe to proceed
             if (this.SqlJs === null) {
