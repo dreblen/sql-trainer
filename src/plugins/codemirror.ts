@@ -1,6 +1,7 @@
 import {
     lineNumbers,
-    highlightActiveLine
+    highlightActiveLine,
+    scrollPastEnd
 } from '@codemirror/view'
 
 import {
@@ -13,6 +14,7 @@ import { SQLite, sql } from '@codemirror/lang-sql'
 export default [
     lineNumbers(),
     highlightActiveLine(),
+    scrollPastEnd(),
     syntaxHighlighting(defaultHighlightStyle),
     sql({
         dialect: SQLite
