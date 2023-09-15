@@ -334,6 +334,12 @@ export default {
         activeDatabaseQueryIndex: function () {
             return this.databasesStore.activeContext?.activeQueryIndex
         },
+        activeDatabaseQueryText: function () {
+            return this.databasesStore.activeQuery?.text
+        },
+        activeDatabaseNumQueries: function () {
+            return this.databasesStore.activeContext?.Queries.length || 0
+        },
         numDatabaseContexts: function () {
             return this.databasesStore.contexts.length
         },
@@ -358,6 +364,12 @@ export default {
             if (newIndex !== this.activeTabIndex) {
                 this.activeTabIndex = newIndex
             }
+        },
+        activeDatabaseQueryText: function () {
+            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+        },
+        activeDatabaseNumQueries: function () {
+            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
         },
         numDatabaseContexts: function (newNum: number) {
             if (newNum === 0) {

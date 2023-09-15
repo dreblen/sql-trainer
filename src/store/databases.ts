@@ -11,6 +11,7 @@ interface TrainerDatabase {
     name: string
     originalDefinition: string
     currentDefinition: string
+    queries: string
 }
 
 // Represents a column definition in a table
@@ -46,7 +47,7 @@ class DatabaseContextQuery {
 // Represents the selection of a trainer database and everything that goes along
 // with it (browser DB, SQLite DB, queries, results, etc.)
 class DatabaseContext {
-    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: SqlJsTypes.Database) {
+    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: SqlJsTypes.Database, queries: Array<DatabaseContextQuery>) {
         this.id = id
         this.name = name
         this.BrowserDatabase = BrowserDatabase
@@ -54,9 +55,13 @@ class DatabaseContext {
 
         this.tables = this.getTables()
 
-        this.Queries = [
-            new DatabaseContextQuery
-        ]
+        if (queries.length === 0) {
+            this.Queries = [
+                new DatabaseContextQuery
+            ]
+        } else {
+            this.Queries = queries
+        }
         this.activeQueryIndex = 0
 
         this.saveTimeoutID = null
@@ -234,7 +239,8 @@ export const useDatabasesStore = defineStore('databases', {
                 database.id as number,
                 database.name,
                 database,
-                sqlDB
+                sqlDB,
+                JSON.parse(database.queries)
             )
 
             // Add and return the context
@@ -288,7 +294,8 @@ export const useDatabasesStore = defineStore('databases', {
             const browserDB: TrainerDatabase = {
                 name,
                 originalDefinition: def,
-                currentDefinition: def
+                currentDefinition: def,
+                queries: JSON.stringify([])
             }
             browserDB.id = (await this.BrowserDB.add(browserDB)) as number
 
@@ -297,7 +304,8 @@ export const useDatabasesStore = defineStore('databases', {
                 browserDB.id,
                 name,
                 browserDB,
-                newDB
+                newDB,
+                JSON.parse(browserDB.queries)
             )
 
             // Add and return the context, setting it as the active context if
@@ -393,9 +401,9 @@ export const useDatabasesStore = defineStore('databases', {
             context.SqlJsDatabase = new this.SqlJs.Database(JSON.parse(context.BrowserDatabase.originalDefinition))
 
             // Store our "updated" definition as the new current
-            this.saveChangesToBrowser(id)
+            this.saveChangesToBrowser(id, 'definition')
         },
-        async saveChangesToBrowser(id: number) {
+        async saveChangesToBrowser(id: number, type?: 'definition'|'query') {
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
@@ -410,25 +418,44 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Schedule a potential save action
             context.saveTimeoutID = window.setTimeout(() => {
-                // Get the current definition and the old definition
-                const newDef = this.exportSqlJsToJSON(context.SqlJsDatabase)
-                const oldDef = context.BrowserDatabase.currentDefinition
+                // Changes in data or structure
+                if (type === undefined || type === 'definition') {
+                    // Get the current definition and the old definition
+                    const newDef = this.exportSqlJsToJSON(context.SqlJsDatabase)
+                    const oldDef = context.BrowserDatabase.currentDefinition
 
-                // If there have been changes, update the stored definition and
-                // our current table list
-                if (newDef !== oldDef) {
-                    context.BrowserDatabase.currentDefinition = newDef
-                    const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
-                    idb.update(context.id, {
-                        currentDefinition: newDef
-                    })
+                    // If there have been changes, update the stored definition
+                    // and our current table list
+                    if (newDef !== oldDef) {
+                        context.BrowserDatabase.currentDefinition = newDef
+                        const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
+                        idb.update(context.id, {
+                            currentDefinition: newDef
+                        })
 
-                    context.tables = context.getTables()
+                        context.tables = context.getTables()
+                    }
+                }
+
+                // Changes to queries
+                if (type === undefined || type === 'query') {
+                    // Get the current query list and the old query list
+                    const newQueries = JSON.stringify(context.Queries)
+                    const oldQueries = context.BrowserDatabase.queries
+
+                    // If there have been changes, update the stored definition
+                    if (newQueries !== oldQueries) {
+                        context.BrowserDatabase.queries = newQueries
+                        const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
+                        idb.update(context.id, {
+                            queries: newQueries
+                        })
+                    }
                 }
 
                 // Clear the timeout value
                 context.saveTimeoutID = null
-            }, 500)
+            }, 1500)
 
             // TODO: During this process, give some kind of saving indicator
         }
