@@ -125,7 +125,7 @@
                                 @click="databasesStore.run"
                                 id="btnRunQuery"
                             >
-                                Run Query (Ctrl+Enter)
+                                Run Query (<kbd>F9</kbd>)
                             </v-btn>
                         </v-col>
                     </v-row>
@@ -452,7 +452,7 @@ export default {
             this.showAddDatabaseDialog = false
         },
         editorKeyUp: function (ev: KeyboardEvent) {
-            if (ev.ctrlKey && ev.key === 'Enter') {
+            if (ev.key === 'F9') {
                 // No matter what, run the active query
                 this.databasesStore.run()
 
