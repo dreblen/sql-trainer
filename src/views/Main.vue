@@ -266,6 +266,7 @@
                 </v-list-item>
                 <v-list-group
                     v-for="table in filteredTables"
+                    :key="table.name"
                     :value="table.name"
                 >
                     <template v-slot:activator="{ props }">
@@ -277,6 +278,7 @@
                     </template>
                     <v-list-item
                         v-for="column in table.columns"
+                        :key="column.id"
                         :title="column.name"
                         :subtitle="`${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}`"
                         :append-icon="column.isPK ? 'mdi-key' : undefined"

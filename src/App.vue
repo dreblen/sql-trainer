@@ -94,6 +94,7 @@
                           <v-col>
                             <p
                               v-for="(line, j) in pack.license.split('\n\n')"
+                              :key="j"
                               class="my-3"
                             >
                               {{ line + '&nbsp;' }}

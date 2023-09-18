@@ -36,7 +36,7 @@ export class IDBWrapper {
             const req = indexedDB.deleteDatabase(this.dbName)
 
             // Handle normal success/failure
-            req.onsuccess = (ev: any) => {
+            req.onsuccess = () => {
                 resolve(null)
             }
             req.onerror = (ev: any) => {
