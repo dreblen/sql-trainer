@@ -140,6 +140,7 @@
                                         density="compact"
                                         fixed-header
                                         :height="(resultset.columns.length > 0) ? '300px' : '100px'"
+                                        hover
                                     >
                                         <thead>
                                             <tr>
