@@ -50,6 +50,19 @@
             </v-row>
             <v-row>
               <v-col>
+                <h2>Source Code</h2>
+                <v-btn
+                  block
+                  append-icon="mdi-open-in-new"
+                  href="https://github.com/dreblen/sql-trainer"
+                  target="blank"
+                >
+                  View on GitHub
+                </v-btn>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
                 <h2>Software Licenses</h2>
                 <p class="mb-3">This app is running with the help of the following bundled packages:</p>
                 <v-expansion-panels
