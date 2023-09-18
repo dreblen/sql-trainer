@@ -38,11 +38,14 @@
           <v-container>
             <v-row>
               <v-col>
+                <h2>Content Controls</h2>
                 <v-btn
                   @click="clearAllData()"
                   :loading="deleteAllIsProcessing"
                   :disabled="deleteAllIsProcessing"
                   block
+                  append-icon="mdi-delete"
+                  color="red"
                 >
                   Delete All Database Content
                 </v-btn>
