@@ -48,6 +48,48 @@
                 </v-btn>
               </v-col>
             </v-row>
+            <v-row>
+              <v-col>
+                <h2>Software Licenses</h2>
+                <p class="mb-3">This app is running with the help of the following bundled packages:</p>
+                <v-expansion-panels
+                  variant="accordion"
+                >
+                  <v-expansion-panel
+                    v-for="(pack, i) in PackageLicenses"
+                    :key="i"
+                    :title="pack.name"
+                  >
+                    <v-expansion-panel-text>
+                      <v-container>
+                        <v-row>
+                          <v-col>
+                            <v-btn
+                              block
+                              append-icon="mdi-open-in-new"
+                              :href="`https://www.npmjs.com/package/${pack.name}`"
+                              target="blank"
+                            >
+                              Package Details
+                            </v-btn>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col>
+                            <p
+                              v-for="(line, j) in pack.license.split('\n\n')"
+                              class="my-3"
+                            >
+                              {{ line + '&nbsp;' }}
+                            </p>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </v-col>
+            </v-row>
           </v-container>
         </v-card-text>
       </v-card>
@@ -59,11 +101,15 @@
 import { mapStores } from 'pinia'
 import { useDatabasesStore } from '@/store/databases'
 
+// Fixed data file that gets updated via script/hook
+import PackageLicenses from '@/package-licenses.json'
+
 export default {
   data() {
     return {
       showDetailsDialog: false,
-      deleteAllIsProcessing: false
+      deleteAllIsProcessing: false,
+      PackageLicenses
     }
   },
   computed: {
