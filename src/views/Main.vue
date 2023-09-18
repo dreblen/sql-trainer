@@ -112,6 +112,7 @@
                                     v-model="databasesStore.activeQuery.text"
                                     placeholder="Type Your Query Text Here..."
                                     style="height: 100%;"
+                                    @keyup="editorKeyUp"
                                 />
                             </v-card>
                         </v-col>
@@ -122,8 +123,9 @@
                                 color="primary"
                                 block
                                 @click="databasesStore.run"
+                                id="btnRunQuery"
                             >
-                                Run Query
+                                Run Query (Ctrl+Enter)
                             </v-btn>
                         </v-col>
                     </v-row>
@@ -448,6 +450,37 @@ export default {
             this.addDatabaseDialogFileText = ''
             this.addDatabaseDialogName = ''
             this.showAddDatabaseDialog = false
+        },
+        editorKeyUp: function (ev: KeyboardEvent) {
+            if (ev.ctrlKey && ev.key === 'Enter') {
+                // No matter what, run the active query
+                this.databasesStore.run()
+
+                // If possible, trigger a ripple on the run query button so the
+                // user can see that something happened
+                const btnRunQuery = document.getElementById('btnRunQuery')
+                if (!btnRunQuery) {
+                    return
+                }
+
+                // Generate an event simulating pressing the Enter key on the
+                // run query button
+                const enterdown: KeyboardEvent = new KeyboardEvent('keydown', {
+                    // Using deprecated keyCode because that's what v-btn
+                    // looks for with its ripple
+                    keyCode: 13,
+                    key: 'Enter'
+                })
+                btnRunQuery.dispatchEvent(enterdown)
+
+                // Generate an event simulating letting go of the Enter key on
+                // the run query button
+                const enterup = new KeyboardEvent('keyup', {
+                    keyCode: 13,
+                    key: 'Enter'
+                })
+                btnRunQuery.dispatchEvent(enterup)
+            }
         }
     },
     async mounted() {
