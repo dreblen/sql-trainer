@@ -14,6 +14,12 @@ interface TrainerDatabase {
     queries: string
 }
 
+// Represents a foreign key relationship for a column
+interface DatabaseTableColumnForeignKey {
+    localName: string
+    foreignName: string
+}
+
 // Represents a column definition in a table
 interface DatabaseTableColumn {
     id: number
@@ -22,6 +28,7 @@ interface DatabaseTableColumn {
     allowNull: boolean
     default: string
     isPK: boolean
+    fk: string|null
 }
 
 // Represents a table definition in a database
@@ -109,6 +116,16 @@ class DatabaseContext {
             throw `'${name} is not a valid table name`
         }
 
+        // Get foreign key information
+        const fkResults = this.SqlJsDatabase.exec(`PRAGMA foreign_key_list(${name})`)
+        let fk: Array<DatabaseTableColumnForeignKey> = []
+        if (fkResults && fkResults.length > 0) {
+            fk = fkResults[0].values.map((row) => ({
+                localName: row[3] as string,
+                foreignName: `${row[2]}.${row[4]}`
+            }))
+        }
+
         // Get column information
         const results = this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
         return results[0].values.map((row) => ({
@@ -117,7 +134,8 @@ class DatabaseContext {
             type: row[2],
             allowNull: (row[3] == '0') ? true : false,
             default: row[4],
-            isPK: (row[5] == '1') ? true : false
+            isPK: (row[5] == '1') ? true : false,
+            fk: fk.find((k) => k.localName === row[1])?.foreignName || null
         } as DatabaseTableColumn))
     }
 

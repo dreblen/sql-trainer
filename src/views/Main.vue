@@ -286,7 +286,7 @@
                         v-for="column in table.columns"
                         :key="column.id"
                         :title="column.name"
-                        :subtitle="`${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}`"
+                        :subtitle="`${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}${column.fk ? ` (${column.fk})` : ''}`"
                         :append-icon="column.isPK ? 'mdi-key' : undefined"
                     />
                 </v-list-group>
