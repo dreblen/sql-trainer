@@ -200,18 +200,21 @@
                         <v-container>
                             <v-row>
                                 <v-col>
-                                    <v-checkbox
-                                        v-model="addDatabaseDialogFromScratch"
-                                        label="Start from Scratch?"
+                                    <v-select
+                                        v-model="addDatabaseDialogStartFromSelection"
+                                        :items="addDatabaseDialogStartFromOptions"
+                                        label="Starting Point..."
                                     />
                                 </v-col>
                             </v-row>
-                            <v-row>
+                            <v-row
+                                v-if="addDatabaseDialogStartFromSelection === 1"
+                            >
                                 <v-col>
                                     <v-file-input
                                         v-model="addDatabaseDialogFiles"
                                         :loading="addDatabaseDialogFileLoading"
-                                        :disabled="addDatabaseDialogFileLoading || addDatabaseDialogFromScratch"
+                                        :disabled="addDatabaseDialogFileLoading"
                                         accept=".sql,text/plain"
                                         label="Definition File"
                                         @click:clear="addDatabaseDialogFileText = ''"
@@ -302,7 +305,11 @@ export default {
     data() {
         return {
             showAddDatabaseDialog: false,
-            addDatabaseDialogFromScratch: false,
+            addDatabaseDialogStartFromOptions: [
+                { value: 1, title: 'From a Definition File' },
+                { value: 2, title: 'From Scratch'}
+            ],
+            addDatabaseDialogStartFromSelection: 1,
             addDatabaseDialogFileLoading: false,
             addDatabaseDialogFiles: [] as Array<File>,
             addDatabaseDialogFileText: '',
@@ -333,7 +340,7 @@ export default {
         },
         addDatabaseDialogAddButtonEnabled: function () {
             return (this.addDatabaseDialogFileLoading === false)
-                && (this.addDatabaseDialogFromScratch === true || this.addDatabaseDialogFileText !== '')
+                && (this.addDatabaseDialogStartFromSelection === 2 || this.addDatabaseDialogFileText !== '')
                 && (this.addDatabaseDialogName !== '')
         },
         activeDatabaseQueryIndex: function () {
@@ -442,11 +449,12 @@ export default {
         addDatabaseFromDialog: async function () {
             // Create our database based on the dialog values, and set it as our
             // currently active context
-            const newDB = await this.databasesStore.create(this.addDatabaseDialogName, this.addDatabaseDialogFileText)
+            const initText = (this.addDatabaseDialogStartFromSelection === 1) ? this.addDatabaseDialogFileText : ''
+            const newDB = await this.databasesStore.create(this.addDatabaseDialogName, initText)
             this.databasesStore.activeContextId = newDB.id
 
             // Reset the dialog values
-            this.addDatabaseDialogFromScratch = false
+            this.addDatabaseDialogStartFromSelection = 1
             this.addDatabaseDialogFiles = []
             this.addDatabaseDialogFileText = ''
             this.addDatabaseDialogName = ''
