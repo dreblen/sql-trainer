@@ -105,6 +105,7 @@
                             md="1"
                         >
                             <v-btn
+                                style="float: right;"
                                 icon="mdi-plus"
                                 @click="databasesStore.activeContext.addQuery()"
                             />
