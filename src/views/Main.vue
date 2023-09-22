@@ -11,17 +11,22 @@
                             v-model="databasesStore.activeContextId"
                             :items="databaseOptions"
                             label="Database"
-                        />
-                    </v-col>
-                    <v-col
-                        cols="3"
-                        sm="2"
-                        md="1"
-                    >
-                        <v-btn
-                            icon="mdi-plus"
-                            @click.stop="showAddDatabaseDialog = true"
-                        />
+                        >
+                            <template v-slot:append>
+                                <v-btn
+                                    icon="mdi-plus"
+                                    @click.stop="showAddDatabaseDialog = true"
+                                />
+                            </template>
+                            <template v-slot:append-inner>
+                                <v-icon v-if="!databasesStore.isSavingContext">mdi-check-circle</v-icon>
+                                <v-progress-circular
+                                    v-else
+                                    indeterminate
+                                    size="22"
+                                />
+                            </template>
+                        </v-select>
                     </v-col>
                 </v-row>
                 <v-row

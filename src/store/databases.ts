@@ -197,7 +197,8 @@ export const useDatabasesStore = defineStore('databases', {
         BrowserDB: null as IDBWrapper|null,
         SqlJs: null as SqlJsTypes.SqlJsStatic|null,
         contexts: [] as Array<DatabaseContext>,
-        activeContextId: -1
+        activeContextId: -1,
+        isSavingContext: false
     }),
     getters: {
         activeContext(state): DatabaseContext|null {
@@ -445,6 +446,8 @@ export const useDatabasesStore = defineStore('databases', {
                 throw `Could not find database context with ID ${id}`
             }
 
+            this.isSavingContext = true
+
             // Cancel any pending save
             if (context.saveTimeoutID !== null) {
                 window.clearTimeout(context.saveTimeoutID)
@@ -452,7 +455,7 @@ export const useDatabasesStore = defineStore('databases', {
             }
 
             // Schedule a potential save action
-            context.saveTimeoutID = window.setTimeout(() => {
+            context.saveTimeoutID = window.setTimeout(async () => {
                 // Store our intended changes so we don't try to make two
                 // separate update calls
                 const changes = {} as {
@@ -491,14 +494,14 @@ export const useDatabasesStore = defineStore('databases', {
                 // Persist our changes in the browser database
                 if (changes.currentDefinition || changes.queries) {
                     const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
-                    idb.update(context.id, changes)
+                    await idb.update(context.id, changes)
                 }
+
+                this.isSavingContext = false
 
                 // Clear the timeout value
                 context.saveTimeoutID = null
             }, 1500)
-
-            // TODO: During this process, give some kind of saving indicator
         }
     }
 })
