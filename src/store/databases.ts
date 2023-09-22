@@ -453,6 +453,13 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Schedule a potential save action
             context.saveTimeoutID = window.setTimeout(() => {
+                // Store our intended changes so we don't try to make two
+                // separate update calls
+                const changes = {} as {
+                    currentDefinition?: string
+                    queries?: string
+                }
+
                 // Changes in data or structure
                 if (type === undefined || type === 'definition') {
                     // Get the current definition and the old definition
@@ -463,12 +470,8 @@ export const useDatabasesStore = defineStore('databases', {
                     // and our current table list
                     if (newDef !== oldDef) {
                         context.BrowserDatabase.currentDefinition = newDef
-                        const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
-                        idb.update(context.id, {
-                            currentDefinition: newDef
-                        })
-
                         context.tables = context.getTables()
+                        changes.currentDefinition = newDef
                     }
                 }
 
@@ -481,11 +484,14 @@ export const useDatabasesStore = defineStore('databases', {
                     // If there have been changes, update the stored definition
                     if (newQueries !== oldQueries) {
                         context.BrowserDatabase.queries = newQueries
-                        const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
-                        idb.update(context.id, {
-                            queries: newQueries
-                        })
+                        changes.queries = newQueries
                     }
+                }
+
+                // Persist our changes in the browser database
+                if (changes.currentDefinition || changes.queries) {
+                    const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
+                    idb.update(context.id, changes)
                 }
 
                 // Clear the timeout value
