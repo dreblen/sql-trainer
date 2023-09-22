@@ -248,8 +248,28 @@
         <v-navigation-drawer
             v-if="databasesStore.activeContext !== null"
             v-model="showTableSummaryDrawer"
+            :width="tableSummaryDrawerWidth"
         >
             <v-list>
+                <v-list-item>
+                    <v-slider
+                        v-model="tableSummaryDrawerWidth"
+                        density="compact"
+                        hide-details
+                        label="Width"
+                        min="256"
+                        max="800"
+                        class="my-1 mr-5"
+                    />
+                    <template v-slot:append>
+                        <v-btn
+                            icon="mdi-close"
+                            size="x-small"
+                            variant="tonal"
+                            @click="showTableSummaryDrawer = false"
+                        />
+                    </template>
+                </v-list-item>
                 <v-list-item>
                     <v-list-item-title>
                         <v-text-field
@@ -261,14 +281,6 @@
                             class="mr-2"
                         />
                     </v-list-item-title>
-                    <template v-slot:append>
-                        <v-btn
-                            icon="mdi-close"
-                            size="x-small"
-                            variant="tonal"
-                            @click="showTableSummaryDrawer = false"
-                        />
-                    </template>
                 </v-list-item>
                 <v-list-group
                     v-for="table in filteredTables"
@@ -285,10 +297,16 @@
                     <v-list-item
                         v-for="column in table.columns"
                         :key="column.id"
-                        :title="column.name"
-                        :subtitle="`${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}${column.fk ? ` (${column.fk})` : ''}`"
                         :append-icon="column.isPK ? 'mdi-key' : undefined"
-                    />
+                    >
+                        <v-list-item-title>{{ column.name }}</v-list-item-title>
+                        <v-list-item-subtitle>
+                            {{ `${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}` }}
+                        </v-list-item-subtitle>
+                        <v-list-item-subtitle v-if="column.fk">
+                            {{ `(${column.fk})` }}
+                        </v-list-item-subtitle>
+                    </v-list-item>
                 </v-list-group>
             </v-list>
         </v-navigation-drawer>
@@ -316,6 +334,7 @@ export default {
             addDatabaseDialogName: '',
 
             showTableSummaryDrawer: false,
+            tableSummaryDrawerWidth: 256,
             tableSummaryFilterText: '',
 
             activeTabIndex: 0
