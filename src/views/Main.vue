@@ -169,8 +169,19 @@
                                                     v-for="(colVal,j) in row"
                                                     :key="j"
                                                     class="text-left"
+                                                    :style="(colVal === null) ? 'background-color: #ffc107;' : ''"
                                                 >
-                                                    {{ (resultset.columns.length > 0) ? colVal : `${colVal} row(s) affected.` }}
+                                                    <template v-if="resultset.columns.length > 0">
+                                                        <template v-if="colVal === null">
+                                                            NULL
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ colVal }}
+                                                        </template>
+                                                    </template>
+                                                    <template v-else>
+                                                        {{ `${colVal} row(s) affected.` }}
+                                                    </template>
                                                 </td>
                                             </tr>
                                         </tbody>
