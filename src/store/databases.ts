@@ -95,7 +95,7 @@ class DatabaseContext {
         const results = this.SqlJsDatabase.exec(`
             SELECT name
             FROM sqlite_master
-            WHERE type = 'table'
+            WHERE type IN ('table','view')
         `)
         if (results.length > 0) {
             return results[0].values.map((row) => row[0] as string).sort()
