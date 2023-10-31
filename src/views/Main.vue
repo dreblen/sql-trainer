@@ -232,9 +232,9 @@
                                         v-model="addDatabaseDialogFiles"
                                         :loading="addDatabaseDialogFileLoading"
                                         :disabled="addDatabaseDialogFileLoading"
-                                        accept=".sql,text/plain"
+                                        accept=".zip,.sql,text/plain"
                                         label="Definition File"
-                                        @click:clear="addDatabaseDialogFileText = ''"
+                                        @click:clear="addDatabaseDialogFileTexts = []"
                                     />
                                 </v-col>
                             </v-row>
@@ -335,6 +335,7 @@ import { mapStores } from 'pinia'
 import { useDatabasesStore } from '@/store/databases'
 
 import { Codemirror } from 'vue-codemirror'
+import JSZip from 'jszip'
 
 export default {
     data() {
@@ -347,7 +348,7 @@ export default {
             addDatabaseDialogStartFromSelection: 1,
             addDatabaseDialogFileLoading: false,
             addDatabaseDialogFiles: [] as Array<File>,
-            addDatabaseDialogFileText: '',
+            addDatabaseDialogFileTexts: [] as Array<string>,
             addDatabaseDialogName: '',
 
             showTableSummaryDrawer: false,
@@ -376,7 +377,7 @@ export default {
         },
         addDatabaseDialogAddButtonEnabled: function () {
             return (this.addDatabaseDialogFileLoading === false)
-                && (this.addDatabaseDialogStartFromSelection === 2 || this.addDatabaseDialogFileText !== '')
+                && (this.addDatabaseDialogStartFromSelection === 2 || this.addDatabaseDialogFileTexts.length > 0)
                 && (this.addDatabaseDialogName !== '')
         },
         activeDatabaseQueryIndex: function () {
@@ -453,7 +454,7 @@ export default {
             // We don't allow selection of multiples, so we always want the
             // first file in the list
             const file = files[0]
-            const fileText: string = await new Promise((resolve, reject) => {
+            const fileBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
                 const reader = new FileReader()
                 reader.onabort = (ev) => {
                     reject(ev)
@@ -462,17 +463,42 @@ export default {
                     reject(ev)
                 }
                 reader.onload = () => {
-                    resolve(reader.result as string)
+                    resolve(reader.result as ArrayBuffer)
                 }
-                reader.readAsText(file)
+                reader.readAsArrayBuffer(file)
             })
 
-            // Store a sanitized version of this file text
-            this.addDatabaseDialogFileText = fileText.replaceAll('\r','')
+            // Treat the file differently depending on whether it was plaintext
+            // SQL or a ZIP bundle; either way, we end up with a list of one or
+            // more script texts to execute as part of our default definition
+            // for this database
+            const texts = []
+            if (file.name.endsWith('.zip')) {
+                const zipper = new JSZip()
+                try {
+                    const zip = await zipper.loadAsync(file)
+                    const filenames = Object.keys(zip.files).sort()
+                    for (const filename of filenames) {
+                        texts.push(await zip.files[filename].async('string'))
+                    }
+                } catch (e) {
+                    console.log('Error reading content from ZIP file: ', e)
+                    this.addDatabaseDialogFileLoading = false
+                    return
+                }
+            } else {
+                texts.push(new TextDecoder().decode(fileBuffer))
+            }
+
+            // Sanitize and permanently store all our file texts
+            for (const i in texts) {
+                texts[i] = texts[i].replaceAll('\r','')
+            }
+            this.addDatabaseDialogFileTexts = texts
             
-            // Read the first line to see if it contains a usable name (as
-            // identify by a hashbang-like comment)
-            const lines = this.addDatabaseDialogFileText.split('\n')
+            // Read the first line of the first file to see if it contains a
+            // usable name (as identify by a hashbang-like comment)
+            const lines = this.addDatabaseDialogFileTexts[0].split('\n')
             if (lines.length > 0 && lines[0].startsWith('--#!')) {
                 this.addDatabaseDialogName = lines[0].substring(4)
             }
@@ -485,14 +511,14 @@ export default {
         addDatabaseFromDialog: async function () {
             // Create our database based on the dialog values, and set it as our
             // currently active context
-            const initText = (this.addDatabaseDialogStartFromSelection === 1) ? this.addDatabaseDialogFileText : ''
-            const newDB = await this.databasesStore.create(this.addDatabaseDialogName, initText)
+            const initTexts = (this.addDatabaseDialogStartFromSelection === 1) ? this.addDatabaseDialogFileTexts : []
+            const newDB = await this.databasesStore.create(this.addDatabaseDialogName, initTexts)
             this.databasesStore.activeContextId = newDB.id
 
             // Reset the dialog values
             this.addDatabaseDialogStartFromSelection = 1
             this.addDatabaseDialogFiles = []
-            this.addDatabaseDialogFileText = ''
+            this.addDatabaseDialogFileTexts = []
             this.addDatabaseDialogName = ''
             this.showAddDatabaseDialog = false
         },

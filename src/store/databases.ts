@@ -311,7 +311,7 @@ export const useDatabasesStore = defineStore('databases', {
                 this.activeContextId = (this.contexts.length > 0) ? this.contexts[0].id : -1
             }
         },
-        async create(name: string, originalDefinition = ''): Promise<DatabaseContext> {
+        async create(name: string, originalDefinitionScripts: Array<string> = []): Promise<DatabaseContext> {
             // Make sure it's safe to proceed
             if (this.BrowserDB === null || this.SqlJs === null) {
                 throw 'Must call init() before creating a database'
@@ -320,9 +320,21 @@ export const useDatabasesStore = defineStore('databases', {
             // Create an empty database
             const newDB = new this.SqlJs.Database()
 
-            // Apply the original definition commands if they were given
-            if (originalDefinition !== '') {
-                newDB.run(originalDefinition)
+            // Apply the original definition commands if they were given,
+            // iterating statements manually instead of using newDB.run() so we
+            // don't run out of memory as easily
+            if (originalDefinitionScripts.length > 0) {
+                for (const originalDefinition of originalDefinitionScripts) {
+                    const statements = newDB.iterateStatements(originalDefinition)
+                    try {
+                        for (const statement of statements) {
+                            statement.run()
+                            statement.free()
+                        }
+                    } catch (err) {
+                        console.log('Error executing original definition script: ', err)
+                    }
+                }
             }
 
             // Create a browser database equivalent
