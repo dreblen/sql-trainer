@@ -11,8 +11,10 @@ const fs = require('fs').promises
 const licenseFiles = [
     'LICENSE',
     'LICENSE.md',
+    'LICENSE.markdown',
     'COPYRIGHT',
-    'COPYRIGHT.md'
+    'COPYRIGHT.md',
+    'COPYRIGHT.markdown'
 ]
 
 // Wrap our logic as an async function so we can use await
