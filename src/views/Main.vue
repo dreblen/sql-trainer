@@ -19,7 +19,7 @@
                                 />
                             </template>
                             <template v-slot:append-inner>
-                                <v-icon v-if="!databasesStore.isSavingContext">mdi-check-circle</v-icon>
+                                <v-icon v-if="!databasesStore.hasPendingChanges">mdi-check-circle</v-icon>
                                 <v-progress-circular
                                     v-else
                                     indeterminate

@@ -198,6 +198,7 @@ export const useDatabasesStore = defineStore('databases', {
         SqlJs: null as SqlJsTypes.SqlJsStatic|null,
         contexts: [] as Array<DatabaseContext>,
         activeContextId: -1,
+        hasPendingChanges: false,
         isSavingContext: false
     }),
     getters: {
@@ -452,13 +453,19 @@ export const useDatabasesStore = defineStore('databases', {
             this.saveChangesToBrowser(id, 'definition')
         },
         async saveChangesToBrowser(id: number, type?: 'definition'|'query') {
+            // If we're in the middle of *actually* saving pending changes,
+            // ignore this call
+            if (this.isSavingContext === true) {
+                return
+            }
+            
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
                 throw `Could not find database context with ID ${id}`
             }
 
-            this.isSavingContext = true
+            this.hasPendingChanges = true
 
             // Cancel any pending save
             if (context.saveTimeoutID !== null) {
@@ -468,6 +475,8 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Schedule a potential save action
             context.saveTimeoutID = window.setTimeout(async () => {
+                this.isSavingContext = true
+
                 // Store our intended changes so we don't try to make two
                 // separate update calls
                 const changes = {} as {
@@ -509,11 +518,12 @@ export const useDatabasesStore = defineStore('databases', {
                     await idb.update(context.id, changes)
                 }
 
-                this.isSavingContext = false
+                this.hasPendingChanges = false
 
                 // Clear the timeout value
                 context.saveTimeoutID = null
-            }, 1500)
+                this.isSavingContext = false
+            }, 10000)
         }
     }
 })
