@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { DBWrapper } from '@/db-wrapper'
+import SqlJsWorker from '@/sqljs-worker?worker'
 
 import initSqlJs from 'sql.js'
 import type * as SqlJsTypes from 'sql.js'
@@ -196,6 +197,7 @@ export const useDatabasesStore = defineStore('databases', {
     state: () => ({
         creationProgressScripts: 0.0,
         creationProgressStatements: 0.0,
+        creationProgressIndeterminate: false,
 
         BrowserDB: null as DBWrapper|null,
         SqlJs: null as SqlJsTypes.SqlJsStatic|null,
@@ -363,7 +365,9 @@ export const useDatabasesStore = defineStore('databases', {
             }
 
             // Create a browser database equivalent
-            const def = this.exportSqlJsToJSON(newDB)
+            this.creationProgressIndeterminate = true
+            const def = await this.exportSqlJsToJSON(newDB)
+            this.creationProgressIndeterminate = false
             const browserDB: TrainerDatabase = {
                 name,
                 originalDefinition: def,
@@ -456,9 +460,22 @@ export const useDatabasesStore = defineStore('databases', {
             // Save changes to the browser if appropriate (logic is delegated)
             this.saveChangesToBrowser(this.activeContext.id)
         },
-        exportSqlJsToJSON(database: SqlJsTypes.Database) {
-            const asArray = Array.from(database.export())
-            return JSON.stringify(asArray)
+        exportSqlJsToJSON(database: SqlJsTypes.Database): Promise<string> {
+            return new Promise((resolve, reject) => {
+                const w = new SqlJsWorker()
+                const dispose = () => {
+                    w.terminate()
+                }
+                w.onmessage = (m) => {
+                    resolve(m.data)
+                    setTimeout(dispose, 5000)
+                }
+                w.onerror = (err) => {
+                    reject(err)
+                    setTimeout(dispose, 5000)
+                }
+                w.postMessage(database.export())
+            })
         },
         async restoreOriginalToBrowser(id: number) {
             // Make sure it's safe to proceed
@@ -521,7 +538,7 @@ export const useDatabasesStore = defineStore('databases', {
                 // Changes in data or structure
                 if (type === undefined || type === 'definition') {
                     // Get the current definition and the old definition
-                    const newDef = this.exportSqlJsToJSON(context.SqlJsDatabase)
+                    const newDef = await this.exportSqlJsToJSON(context.SqlJsDatabase)
                     const oldDef = context.BrowserDatabase.currentDefinition
 
                     // If there have been changes, update the stored definition

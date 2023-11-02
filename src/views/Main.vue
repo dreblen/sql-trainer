@@ -253,10 +253,12 @@
                     <v-progress-linear
                         color="primary"
                         v-model="databasesStore.creationProgressScripts"
+                        :indeterminate="databasesStore.creationProgressIndeterminate"
                     />
                     <v-progress-linear
                         color="primary"
                         v-model="databasesStore.creationProgressStatements"
+                        :indeterminate="databasesStore.creationProgressIndeterminate"
                     />
                 </v-card-text>
                 <v-card-actions>
