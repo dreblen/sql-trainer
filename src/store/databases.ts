@@ -194,6 +194,9 @@ class DatabaseContext {
 
 export const useDatabasesStore = defineStore('databases', {
     state: () => ({
+        creationProgressScripts: 0.0,
+        creationProgressStatements: 0.0,
+
         BrowserDB: null as IDBWrapper|null,
         SqlJs: null as SqlJsTypes.SqlJsStatic|null,
         contexts: [] as Array<DatabaseContext>,
@@ -324,18 +327,39 @@ export const useDatabasesStore = defineStore('databases', {
             // Apply the original definition commands if they were given,
             // iterating statements manually instead of using newDB.run() so we
             // don't run out of memory as easily
-            if (originalDefinitionScripts.length > 0) {
-                for (const originalDefinition of originalDefinitionScripts) {
+            for (let i = 0; i < originalDefinitionScripts.length; i++) {
+                const originalDefinition = originalDefinitionScripts[i]
+                let bytesProcessed = 0
+                let totalBytes = -1
+
+                await new Promise((resolve, reject) => {
                     const statements = newDB.iterateStatements(originalDefinition)
-                    try {
-                        for (const statement of statements) {
+                    totalBytes = statements.getRemainingSQL().length
+                    const statementReader = (statements: any, next: any) => {
+                        try {
+                            const it = statements.next()
+                            if (it.done) {
+                                resolve(null)
+                                return
+                            }
+    
+                            const statement = it.value
+                            bytesProcessed += statement.getSQL().length
+                            this.creationProgressStatements = 100.0 * bytesProcessed / totalBytes
                             statement.run()
-                            statement.free()
+    
+                            setTimeout(() => {
+                                next(statements, next)
+                            })
+                        } catch (e) {
+                            reject(e)
                         }
-                    } catch (err) {
-                        console.log('Error executing original definition script: ', err)
                     }
-                }
+
+                    statementReader(statements, statementReader)
+                })
+
+                this.creationProgressScripts = 100.0 * (i + 1) / originalDefinitionScripts.length
             }
 
             // Create a browser database equivalent
@@ -363,6 +387,11 @@ export const useDatabasesStore = defineStore('databases', {
             if (this.contexts.length === 1) {
                 this.activeContextId = browserDB.id
             }
+
+            // Reset our progress indicators
+            this.creationProgressScripts = 0
+            this.creationProgressStatements = 0
+
             return context
         },
         async run() {

@@ -207,6 +207,7 @@
             v-model="showAddDatabaseDialog"
             width="auto"
             min-width="20em"
+            :persistent="addDatabaseDialogIsSaving"
         >
             <v-card>
                 <v-card-title>
@@ -234,7 +235,8 @@
                                         :disabled="addDatabaseDialogFileLoading"
                                         accept=".zip,.sql,text/plain"
                                         label="Definition File"
-                                        @click:clear="addDatabaseDialogFileTexts = []"
+                                        @click:clear="addDatabaseDialogFileTexts = []; addDatabaseDialogScriptError = ''"
+                                        :error-messages="addDatabaseDialogScriptError"
                                     />
                                 </v-col>
                             </v-row>
@@ -248,6 +250,14 @@
                             </v-row>
                         </v-container>
                     </v-form>
+                    <v-progress-linear
+                        color="primary"
+                        v-model="databasesStore.creationProgressScripts"
+                    />
+                    <v-progress-linear
+                        color="primary"
+                        v-model="databasesStore.creationProgressStatements"
+                    />
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer />
@@ -350,6 +360,8 @@ export default {
             addDatabaseDialogFiles: [] as Array<File>,
             addDatabaseDialogFileTexts: [] as Array<string>,
             addDatabaseDialogName: '',
+            addDatabaseDialogIsSaving: false,
+            addDatabaseDialogScriptError: '',
 
             showTableSummaryDrawer: false,
             tableSummaryDrawerWidth: 256,
@@ -379,6 +391,7 @@ export default {
             return (this.addDatabaseDialogFileLoading === false)
                 && (this.addDatabaseDialogStartFromSelection === 2 || this.addDatabaseDialogFileTexts.length > 0)
                 && (this.addDatabaseDialogName !== '')
+                && (this.addDatabaseDialogIsSaving === false)
         },
         activeDatabaseQueryIndex: function () {
             return this.databasesStore.activeContext?.activeQueryIndex
@@ -509,18 +522,28 @@ export default {
     },
     methods: {
         addDatabaseFromDialog: async function () {
+            this.addDatabaseDialogIsSaving = true
+
             // Create our database based on the dialog values, and set it as our
             // currently active context
             const initTexts = (this.addDatabaseDialogStartFromSelection === 1) ? this.addDatabaseDialogFileTexts : []
-            const newDB = await this.databasesStore.create(this.addDatabaseDialogName, initTexts)
-            this.databasesStore.activeContextId = newDB.id
+            try {
+                const newDB = await this.databasesStore.create(this.addDatabaseDialogName, initTexts)
+                this.databasesStore.activeContextId = newDB.id
 
-            // Reset the dialog values
-            this.addDatabaseDialogStartFromSelection = 1
-            this.addDatabaseDialogFiles = []
-            this.addDatabaseDialogFileTexts = []
-            this.addDatabaseDialogName = ''
-            this.showAddDatabaseDialog = false
+                // Reset the dialog values
+                this.addDatabaseDialogStartFromSelection = 1
+                this.addDatabaseDialogFiles = []
+                this.addDatabaseDialogFileTexts = []
+                this.addDatabaseDialogName = ''
+                this.showAddDatabaseDialog = false
+            } catch (err) {
+                this.addDatabaseDialogScriptError = (err as Error).message
+                this.databasesStore.creationProgressScripts = 0
+                this.databasesStore.creationProgressStatements = 0
+            } finally {
+                this.addDatabaseDialogIsSaving = false
+            }
         },
         editorKeyUp: function (ev: KeyboardEvent) {
             if (ev.key === 'F9') {
