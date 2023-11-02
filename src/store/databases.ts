@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import { IDBWrapper } from '@/idb-wrapper'
+import { DBWrapper } from '@/db-wrapper'
 
 import initSqlJs from 'sql.js'
 import type * as SqlJsTypes from 'sql.js'
@@ -197,7 +197,7 @@ export const useDatabasesStore = defineStore('databases', {
         creationProgressScripts: 0.0,
         creationProgressStatements: 0.0,
 
-        BrowserDB: null as IDBWrapper|null,
+        BrowserDB: null as DBWrapper|null,
         SqlJs: null as SqlJsTypes.SqlJsStatic|null,
         contexts: [] as Array<DatabaseContext>,
         activeContextId: -1,
@@ -224,7 +224,7 @@ export const useDatabasesStore = defineStore('databases', {
         async init() {
             // Configure our IndexedDB wrapper if needed
             if (this.BrowserDB === null) {
-                this.BrowserDB = new IDBWrapper('sql-trainer', 'trainerDatabases')
+                this.BrowserDB = new DBWrapper()
             }
 
             // Configure SQL.js if needed
@@ -504,6 +504,11 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Schedule a potential save action
             context.saveTimeoutID = window.setTimeout(async () => {
+                // Make sure it's safe to proceed
+                if (this.BrowserDB === null) {
+                    throw 'Must call init() before saving changes to browser'
+                }
+
                 this.isSavingContext = true
 
                 // Store our intended changes so we don't try to make two
@@ -543,8 +548,7 @@ export const useDatabasesStore = defineStore('databases', {
 
                 // Persist our changes in the browser database
                 if (changes.currentDefinition || changes.queries) {
-                    const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
-                    await idb.update(context.id, changes)
+                    await this.BrowserDB.update(context.id, changes)
                 }
 
                 this.hasPendingChanges = false
@@ -552,7 +556,7 @@ export const useDatabasesStore = defineStore('databases', {
                 // Clear the timeout value
                 context.saveTimeoutID = null
                 this.isSavingContext = false
-            }, 10000)
+            }, 1000)
         }
     }
 })
