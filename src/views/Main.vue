@@ -11,6 +11,8 @@
                             v-model="databasesStore.activeContextId"
                             :items="databaseOptions"
                             label="Database"
+                            :loading="databasesStore.isInitializing"
+                            :disabled="databasesStore.isInitializing"
                         >
                             <template v-slot:append>
                                 <v-btn

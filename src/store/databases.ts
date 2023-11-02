@@ -195,6 +195,7 @@ class DatabaseContext {
 
 export const useDatabasesStore = defineStore('databases', {
     state: () => ({
+        isInitializing: false,
         creationProgressScripts: 0.0,
         creationProgressStatements: 0.0,
         creationProgressIndeterminate: false,
@@ -224,6 +225,8 @@ export const useDatabasesStore = defineStore('databases', {
     },
     actions: {
         async init() {
+            this.isInitializing = true
+
             // Configure our IndexedDB wrapper if needed
             if (this.BrowserDB === null) {
                 this.BrowserDB = new DBWrapper()
@@ -244,13 +247,15 @@ export const useDatabasesStore = defineStore('databases', {
                     // Create and store a working database copy from each of the
                     // persisted database copies
                     for (const database of databases) {
-                        this.add(database)
+                        await this.add(database)
 
                         // Set our default context to the last database
                         this.activeContextId = database.id as number
                     }
                 }
             }
+
+            this.isInitializing = false
         },
         async clear() {
             // Nothing to do if we haven't initialized yet
@@ -269,25 +274,44 @@ export const useDatabasesStore = defineStore('databases', {
             // Re-initialize
             return this.init()
         },
-        add(database: TrainerDatabase): DatabaseContext {
-            // Make sure it's safe to proceed
-            if (this.SqlJs === null) {
-                throw 'Must call init() before adding a database'
-            }
+        add(database: TrainerDatabase): Promise<DatabaseContext> {
+            return new Promise((resolve, reject) => {
+                const w = new SqlJsWorker()
+                const dispose = () => {
+                    w.terminate()
+                }
+                w.onmessage = (m) => {
+                    // Make sure it's safe to proceed
+                    if (this.SqlJs === null) {
+                        reject('Must call init() before adding a database')
+                        return
+                    }
 
-            // Create a database context for this database
-            const sqlDB = new this.SqlJs.Database(JSON.parse(database.currentDefinition))
-            const context = new DatabaseContext(
-                database.id as number,
-                database.name,
-                database,
-                sqlDB,
-                JSON.parse(database.queries)
-            )
+                    // Create a database context for this database
+                    const sqlDB = new this.SqlJs.Database(m.data)
+                    const context = new DatabaseContext(
+                        database.id as number,
+                        database.name,
+                        database,
+                        sqlDB,
+                        JSON.parse(database.queries)
+                    )
 
-            // Add and return the context
-            this.contexts.push(context)
-            return context
+                    // Add and return the context
+                    this.contexts.push(context)
+                    resolve(context)
+                    
+                    setTimeout(dispose, 5000)
+                }
+                w.onerror = (err) => {
+                    reject(err)
+                    setTimeout(dispose, 5000)
+                }
+                w.postMessage({
+                    type: 'parse',
+                    data: database.currentDefinition
+                })
+            })
         },
         async delete(id: number) {
             // Make sure it's safe to proceed
@@ -474,7 +498,10 @@ export const useDatabasesStore = defineStore('databases', {
                     reject(err)
                     setTimeout(dispose, 5000)
                 }
-                w.postMessage(database.export())
+                w.postMessage({
+                    type: 'stringify',
+                    data: database.export()
+                })
             })
         },
         async restoreOriginalToBrowser(id: number) {
