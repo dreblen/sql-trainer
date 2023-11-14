@@ -516,8 +516,8 @@ export default {
             // Read the first line of the first file to see if it contains a
             // usable name (as identify by a hashbang-like comment)
             const lines = this.addDatabaseDialogFileTexts[0].split('\n')
-            if (lines.length > 0 && lines[0].startsWith('--#!')) {
-                this.addDatabaseDialogName = lines[0].substring(4)
+            if (lines.length > 0 && lines[0].trimStart().startsWith('--#!')) {
+                this.addDatabaseDialogName = lines[0].trimStart().substring(4)
             }
 
             // Stop our loading indicator
