@@ -152,6 +152,7 @@
                                     >
                                         <thead>
                                             <tr>
+                                                <th>#</th>
                                                 <th
                                                     v-for="(colName,i) in resultset.columns"
                                                     :key="i"
@@ -167,6 +168,7 @@
                                                 v-for="(row,i) in resultset.values"
                                                 :key="i"
                                             >
+                                                <td>{{ i + 1 }}</td>
                                                 <td
                                                     v-for="(colVal,j) in row"
                                                     :key="j"
