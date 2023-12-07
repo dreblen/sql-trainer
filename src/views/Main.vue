@@ -144,57 +144,35 @@
                         <v-row>
                             <v-col>
                                 <v-card variant="outlined">
-                                    <v-table
-                                        density="compact"
-                                        fixed-header
-                                        :height="(resultset.columns.length > 0) ? '300px' : '100px'"
-                                        hover
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th
-                                                    v-if="resultset.columns.length > 0"
-                                                    style="width: 1em;"
-                                                >
-                                                    #
-                                                </th>
-                                                <th
-                                                    v-for="(colName,i) in resultset.columns"
-                                                    :key="i"
-                                                    class="text-left"
-                                                    style="background: grey; color: white;"
-                                                >
-                                                    {{ colName }}
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr
-                                                v-for="(row,i) in resultset.values"
+                                    <template v-if="resultset.columns.length > 0">
+                                        <v-data-table-virtual
+                                            fixed-header
+                                            :headers="[{ title: '#', key: '0', sortable: false, width: '1em' },...resultset.columns.map((c, i) => ({ title: c, key: (i+1).toString(), sortable: false }))]"
+                                            :items="mapResultValues(resultset.values)"
+                                            height="300"
+                                            density="compact"
+                                        >
+                                            <template
+                                                v-for="(col, i) in ['#',...resultset.columns]"
                                                 :key="i"
+                                                v-slot:[`item.${i.toString()}`]="{ item }"
                                             >
-                                                <td v-if="resultset.columns.length > 0">{{ i + 1 }}</td>
-                                                <td
-                                                    v-for="(colVal,j) in row"
-                                                    :key="j"
-                                                    class="text-left"
-                                                    :style="(colVal === null) ? 'background-color: #ffc107;' : ''"
-                                                >
-                                                    <template v-if="resultset.columns.length > 0">
-                                                        <template v-if="colVal === null">
-                                                            NULL
-                                                        </template>
-                                                        <template v-else>
-                                                            {{ colVal }}
-                                                        </template>
-                                                    </template>
-                                                    <template v-else>
-                                                        {{ `${colVal} row(s) affected.` }}
-                                                    </template>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </v-table>
+                                                <span v-if="item.columns[i.toString()] === null">
+                                                    <v-chip color="#885400">
+                                                        NULL
+                                                    </v-chip>
+                                                </span>
+                                                <span v-else style="white-space: nowrap;">
+                                                    {{ item.columns[i.toString()] }}
+                                                </span>
+                                            </template>
+                                        </v-data-table-virtual>
+                                    </template>
+                                    <template v-else>
+                                        <div style="height: 100px;" class="pa-3">
+                                            {{ `${resultset.values[0]} row(s) affected.` }}
+                                        </div>
+                                    </template>
                                 </v-card>
                             </v-col>
                         </v-row>
@@ -357,6 +335,7 @@ import { useDatabasesStore } from '@/store/databases'
 
 import { Codemirror } from 'vue-codemirror'
 import JSZip from 'jszip'
+import { SqlValue } from 'sql.js'
 
 export default {
     data() {
@@ -586,6 +565,16 @@ export default {
                 })
                 btnRunQuery.dispatchEvent(enterup)
             }
+        },
+        mapResultValues: function (values: SqlValue[][]) {
+            return values.map((row, i) => {
+                const o: {[key: string]: SqlValue} = {}
+                o['0'] = i + 1
+                for (const i in row) {
+                    o[(parseInt(i) + 1).toString()] = row[i]
+                }
+                return o
+            })
         }
     },
     async mounted() {

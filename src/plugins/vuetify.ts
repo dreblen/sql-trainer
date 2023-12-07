@@ -10,9 +10,13 @@ import 'vuetify/styles'
 
 // Composables
 import { createVuetify } from 'vuetify'
+import { VDataTableVirtual } from 'vuetify/lib/labs/components.mjs'
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
+  components: {
+    VDataTableVirtual
+  },
   theme: {
     themes: {
       light: {
