@@ -156,8 +156,21 @@
                                 color="error"
                                 block
                                 @click="databasesStore.stop"
+                                :disabled="databasesStore.activeQuery.isStopping"
+                                :loading="databasesStore.activeQuery.isStopping"
                             >
                                 Stop Query
+                                <template v-slot:loader>
+                                    <v-progress-linear
+                                        stream
+                                        height="20"
+                                        color="error"
+                                    >
+                                        <template v-slot:default>
+                                            Stopping Query...
+                                        </template>
+                                    </v-progress-linear>
+                                </template>
                             </v-btn>
                         </v-col>
                     </v-row>

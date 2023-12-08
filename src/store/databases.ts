@@ -45,6 +45,7 @@ class DatabaseContextQuery {
         this.results = []
         this.error = ''
         this.isRunning = false
+        this.isStopping = false
         this.progress = 0
     }
 
@@ -52,6 +53,7 @@ class DatabaseContextQuery {
     results: Array<SqlJsTypes.QueryExecResult>
     error: string
     isRunning: boolean
+    isStopping: boolean
     progress: number
 }
 
@@ -421,9 +423,15 @@ export const useDatabasesStore = defineStore('databases', {
             if (this.activeContext === null || this.activeQuery === null || !this.activeQuery.isRunning) {
                 return
             }
+
+            // Stop the query and put the database back into a usable state
+            this.activeQuery.isStopping = true
             await this.activeContext.SqlJsDatabase.close()
             await this.activeContext.loadTables()
+
+            // Reset our query's status values
             this.activeQuery.isRunning = false
+            this.activeQuery.isStopping = false
             this.activeQuery.progress = 0
         },
         async restoreOriginalToBrowser(id: number) {
