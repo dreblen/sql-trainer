@@ -396,8 +396,11 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Execute our current query statements and store the results
             activeQuery.isRunning = true
-            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text, (value) => {
+            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text, (value, result) => {
                 activeQuery.progress = value
+                if (result) {
+                    activeQuery.results.push(result)
+                }
             })
                 .catch((e) => {
                     if (e.err) {

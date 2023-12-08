@@ -84,11 +84,6 @@ onmessage = async function (m) {
                     const statement = it.value
                     const rawSQL = statement.getSQL()
                     const statementSQL = rawSQL.trimStart()
-                    bytesProcessed += rawSQL.length
-                    this.postMessage({
-                        type: 'progress',
-                        value: 100.0 * bytesProcessed / totalBytes
-                    })
 
                     // Store the column names (for SELECT-type queries)
                     const columns = statement.getColumnNames()
@@ -111,15 +106,24 @@ onmessage = async function (m) {
                     // column headings, we assume it was something where we
                     // care about the number of rows affected and not the
                     // rows.
-                    results.push({
+                    const result: SqlJsTypes.QueryExecResult = {
                         columns,
                         values: (columns.length > 0) ?
                             rows :
                             [[numRows as SqlJsTypes.SqlValue]]
-                    })
+                    }
+                    results.push(result)
 
                     // Clean up the statement
                     statement.free()
+
+                    // Update our progress
+                    bytesProcessed += rawSQL.length
+                    this.postMessage({
+                        type: 'progress',
+                        value: 100.0 * bytesProcessed / totalBytes,
+                        result
+                    })
                 } catch (err) {
                     this.postMessage({
                         type: 'error',

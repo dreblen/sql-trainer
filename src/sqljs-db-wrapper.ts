@@ -92,7 +92,7 @@ export class SqlJsDBWrapper {
      * and the worker instance will be returned immediately. Use with caution.
      * @returns New Worker object.
      */
-    private async getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number) => void, noWait?: boolean): Promise<Worker> {
+    private async getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number, result?: SqlJsTypes.QueryExecResult) => void, noWait?: boolean): Promise<Worker> {
         // When we receive a message from the worker, handle special values
         // based on a type classifier, but otherwise call our resolve method
         // using whatever value was sent in the message
@@ -114,7 +114,7 @@ export class SqlJsDBWrapper {
                     // ignore the value without resolving.
                     case 'progress': {
                         if (progress) {
-                            progress(m.data.value)
+                            progress(m.data.value, m.data.result)
                         }
                         break
                     }
@@ -276,10 +276,11 @@ export class SqlJsDBWrapper {
      * 
      * @param sql The SQL text to execute.
      * @param onprogress Method to call whenever a statement is finished,
-     * providing a numerical representation (0..100) of the overall completion.
+     * providing a numerical representation (0..100) of the overall completion
+     * and optionally the query result associated with the step of progress.
      * @returns List of results, one for each statement.
      */
-    public async runStatements (sql: string, onprogress?: (value: number) => void): Promise<Array<SqlJsTypes.QueryExecResult>> {
+    public async runStatements (sql: string, onprogress?: (value: number, result?: SqlJsTypes.QueryExecResult) => void): Promise<Array<SqlJsTypes.QueryExecResult>> {
         if (this.isWorker) {
             return new Promise(async (resolve, reject) => {
                 const worker = await this.getWorker(resolve, reject, onprogress)
