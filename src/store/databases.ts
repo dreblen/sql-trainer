@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia'
 
 import { DBWrapper } from '@/db-wrapper'
-import SqlJsWorker from '@/sqljs-worker?worker'
 
-import initSqlJs from 'sql.js'
-import type * as SqlJsTypes from 'sql.js'
+import { SqlJsDBWrapper } from '@/sqljs-db-wrapper'
+import * as SqlJsTypes from 'sql.js'
 
 // Represents the schema of our IndexedDB object store
 interface TrainerDatabase {
@@ -55,13 +54,15 @@ class DatabaseContextQuery {
 // Represents the selection of a trainer database and everything that goes along
 // with it (browser DB, SQLite DB, queries, results, etc.)
 class DatabaseContext {
-    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: SqlJsTypes.Database, queries: Array<DatabaseContextQuery>) {
+    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: SqlJsDBWrapper, queries: Array<DatabaseContextQuery>) {
         this.id = id
         this.name = name
         this.BrowserDatabase = BrowserDatabase
         this.SqlJsDatabase = SqlJsDatabase
 
-        this.tables = this.getTables()
+        // Loading tables is an async operation, which we can't do in the
+        // constructor; need to call loadTables() after the fact.
+        this.tables = []
 
         if (queries.length === 0) {
             this.Queries = [
@@ -78,7 +79,7 @@ class DatabaseContext {
     id: number
     name: string
     BrowserDatabase: TrainerDatabase
-    SqlJsDatabase: SqlJsTypes.Database
+    SqlJsDatabase: SqlJsDBWrapper
 
     tables: Array<DatabaseTable>
 
@@ -92,8 +93,8 @@ class DatabaseContext {
      * 
      * @returns Array of table name strings.
      */
-    public getTableNames (): Array<string> {
-        const results = this.SqlJsDatabase.exec(`
+    public async getTableNames (): Promise<Array<string>> {
+        const results = await this.SqlJsDatabase.exec(`
             SELECT name
             FROM sqlite_master
             WHERE type IN ('table','view')
@@ -111,14 +112,14 @@ class DatabaseContext {
      * @param name The name of the table.
      * @returns Array of column definitions.
      */
-    public getTableColumns (name: string): Array<DatabaseTableColumn> {
+    public async getTableColumns (name: string): Promise<Array<DatabaseTableColumn>> {
         // Make sure we'll get results for this table
-        if (this.getTableNames().indexOf(name) === -1) {
+        if ((await this.getTableNames()).indexOf(name) === -1) {
             throw `'${name} is not a valid table name`
         }
 
         // Get foreign key information
-        const fkResults = this.SqlJsDatabase.exec(`PRAGMA foreign_key_list(${name})`)
+        const fkResults = await this.SqlJsDatabase.exec(`PRAGMA foreign_key_list(${name})`)
         let fk: Array<DatabaseTableColumnForeignKey> = []
         if (fkResults && fkResults.length > 0) {
             fk = fkResults[0].values.map((row) => ({
@@ -128,7 +129,7 @@ class DatabaseContext {
         }
 
         // Get column information
-        const results = this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
+        const results = await this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
         return results[0].values.map((row) => ({
             id: row[0],
             name: row[1],
@@ -145,15 +146,24 @@ class DatabaseContext {
      * 
      * @returns Array of table objects, with column details.
      */
-    public getTables (): Array<DatabaseTable> {
+    public async getTables (): Promise<Array<DatabaseTable>> {
         const tables: Array<DatabaseTable> = []
-        for (const tableName of this.getTableNames()) {
+        for (const tableName of await this.getTableNames()) {
             tables.push({
                 name: tableName,
-                columns: this.getTableColumns(tableName)
+                columns: await this.getTableColumns(tableName)
             })
         }
         return tables
+    }
+
+    /**
+     * Populates the context's list of tables based on its SQL.js database.
+     * 
+     * @returns Promise of nothing.
+     */
+    public async loadTables (): Promise<void> {
+        this.tables = await this.getTables()
     }
 
     /**
@@ -201,7 +211,6 @@ export const useDatabasesStore = defineStore('databases', {
         creationProgressIndeterminate: false,
 
         BrowserDB: null as DBWrapper|null,
-        SqlJs: null as SqlJsTypes.SqlJsStatic|null,
         contexts: [] as Array<DatabaseContext>,
         activeContextId: -1,
         hasPendingChanges: false,
@@ -232,16 +241,9 @@ export const useDatabasesStore = defineStore('databases', {
                 this.BrowserDB = new DBWrapper()
             }
 
-            // Configure SQL.js if needed
-            if (this.SqlJs === null) {
-                this.SqlJs = await initSqlJs({
-                    locateFile: filename => `/${filename}`
-                })
-            }
-
             // Check if we have any databases to populate from our browser
             // storage if SQL.js is properly configured
-            if (this.SqlJs !== null && this.contexts.length === 0) {
+            if (this.contexts.length === 0) {
                 const databases: Array<TrainerDatabase> = await this.BrowserDB.getAllWithKeys()
                 if (databases.length > 0) {
                     // Create and store a working database copy from each of the
@@ -275,47 +277,26 @@ export const useDatabasesStore = defineStore('databases', {
             return this.init()
         },
         add(database: TrainerDatabase): Promise<DatabaseContext> {
-            return new Promise((resolve, reject) => {
-                const w = new SqlJsWorker()
-                const dispose = () => {
-                    w.terminate()
-                }
-                w.onmessage = (m) => {
-                    // Make sure it's safe to proceed
-                    if (this.SqlJs === null) {
-                        reject('Must call init() before adding a database')
-                        return
-                    }
+            return new Promise(async (resolve, reject) => {
+                // Create a database context for this database
+                const sqlDB = new SqlJsDBWrapper(database.currentDefinition)
+                const context = new DatabaseContext(
+                    database.id as number,
+                    database.name,
+                    database,
+                    sqlDB,
+                    JSON.parse(database.queries)
+                )
+                await context.loadTables()
 
-                    // Create a database context for this database
-                    const sqlDB = new this.SqlJs.Database(m.data)
-                    const context = new DatabaseContext(
-                        database.id as number,
-                        database.name,
-                        database,
-                        sqlDB,
-                        JSON.parse(database.queries)
-                    )
-
-                    // Add and return the context
-                    this.contexts.push(context)
-                    resolve(context)
-                    
-                    setTimeout(dispose, 5000)
-                }
-                w.onerror = (err) => {
-                    reject(err)
-                    setTimeout(dispose, 5000)
-                }
-                w.postMessage({
-                    type: 'parse',
-                    data: database.currentDefinition
-                })
+                // Add and return the context
+                this.contexts.push(context)
+                resolve(context)
             })
         },
         async delete(id: number) {
             // Make sure it's safe to proceed
-            if (this.BrowserDB === null || this.SqlJs === null) {
+            if (this.BrowserDB === null) {
                 throw 'Must call init() before deleting a database'
             }
 
@@ -343,12 +324,12 @@ export const useDatabasesStore = defineStore('databases', {
         },
         async create(name: string, originalDefinitionScripts: Array<string> = []): Promise<DatabaseContext> {
             // Make sure it's safe to proceed
-            if (this.BrowserDB === null || this.SqlJs === null) {
+            if (this.BrowserDB === null) {
                 throw 'Must call init() before creating a database'
             }
 
             // Create an empty database
-            const newDB = new this.SqlJs.Database()
+            const newDB = new SqlJsDBWrapper()
 
             // Apply the original definition commands if they were given,
             // iterating statements manually instead of using newDB.run() so we
@@ -358,39 +339,14 @@ export const useDatabasesStore = defineStore('databases', {
                 let bytesProcessed = 0
                 let totalBytes = -1
 
-                await new Promise((resolve, reject) => {
-                    const statements = newDB.iterateStatements(originalDefinition)
-                    totalBytes = statements.getRemainingSQL().length
-                    const statementReader = (statements: any, next: any) => {
-                        try {
-                            const it = statements.next()
-                            if (it.done) {
-                                resolve(null)
-                                return
-                            }
-    
-                            const statement = it.value
-                            bytesProcessed += statement.getSQL().length
-                            this.creationProgressStatements = 100.0 * bytesProcessed / totalBytes
-                            statement.run()
-    
-                            setTimeout(() => {
-                                next(statements, next)
-                            })
-                        } catch (e) {
-                            reject(e)
-                        }
-                    }
-
-                    statementReader(statements, statementReader)
-                })
+                await newDB.runStatements(originalDefinition, (value) => { this.creationProgressStatements = value })
 
                 this.creationProgressScripts = 100.0 * (i + 1) / originalDefinitionScripts.length
             }
 
             // Create a browser database equivalent
             this.creationProgressIndeterminate = true
-            const def = await this.exportSqlJsToJSON(newDB)
+            const def = await newDB.exportToJSON()
             this.creationProgressIndeterminate = false
             const browserDB: TrainerDatabase = {
                 name,
@@ -408,6 +364,7 @@ export const useDatabasesStore = defineStore('databases', {
                 newDB,
                 JSON.parse(browserDB.queries)
             )
+            await context.loadTables()
 
             // Add and return the context, setting it as the active context if
             // it's the only one
@@ -433,83 +390,21 @@ export const useDatabasesStore = defineStore('databases', {
             activeQuery.results = []
             activeQuery.error = ''
 
-            // Split our query text into individual statements and iterate them
-            // so we have more control over the formatting of the results (i.e.,
-            // we're basically doing the same as SqlJsDatabase.exec() but we
-            // want to do things like include empty result sets)
-            const statements = this.activeContext.SqlJsDatabase.iterateStatements(activeQuery.text)
-            const results: Array<SqlJsTypes.QueryExecResult> = []
-            try {
-                // The statement iterator will throw an exception if it
-                // encounters an invalid statement, so the whole loop is in the
-                // try-catch block instead of the individual steps. We can still
-                // use the results we gather up to the point of the error.
-                for (const statement of statements) {
-                    // Store the column names (for SELECT-type queries)
-                    const columns = statement.getColumnNames()
-
-                    // Gather our row data if applicable (for SELECT-type)
-                    const rows = []
-                    while (statement.step()) {
-                        rows.push(statement.get())
+            // Execute our current query statements and store the results
+            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text)
+                .catch((e) => {
+                    if (e.err) {
+                        activeQuery.error = e.err.message
                     }
-
-                    // Get the number of rows affected (for INSERT/UPDATE/DELETE
-                    // statements only, not SELECTs or DDL statements)
-                    let numRows = 0
-                    const statementSQL = statement.getSQL().trimStart()
-                    if (statementSQL.startsWith('INSERT') || statementSQL.startsWith('UPDATE') || statementSQL.startsWith('DELETE')) {
-                        numRows = this.activeContext.SqlJsDatabase.getRowsModified()
+                    if (e.results) {
+                        return e.results
                     }
-
-                    // Store the results of this statement. If there were no
-                    // column headings, we assume it was something where we care
-                    // about the number of rows affected and not the rows.
-                    results.push({
-                        columns,
-                        values: (columns.length > 0) ?
-                            rows :
-                            [[numRows as SqlJsTypes.SqlValue]]
-                    })
-
-                    // Clean up the statement
-                    statement.free()
-                }
-            } catch (err) {
-                activeQuery.error = (err as Error).message
-            } finally {
-                activeQuery.results = results
-            }
+                })
 
             // Save changes to the browser if appropriate (logic is delegated)
             this.saveChangesToBrowser(this.activeContext.id)
         },
-        exportSqlJsToJSON(database: SqlJsTypes.Database): Promise<string> {
-            return new Promise((resolve, reject) => {
-                const w = new SqlJsWorker()
-                const dispose = () => {
-                    w.terminate()
-                }
-                w.onmessage = (m) => {
-                    resolve(m.data)
-                    setTimeout(dispose, 5000)
-                }
-                w.onerror = (err) => {
-                    reject(err)
-                    setTimeout(dispose, 5000)
-                }
-                w.postMessage({
-                    type: 'stringify',
-                    data: database.export()
-                })
-            })
-        },
         async restoreOriginalToBrowser(id: number) {
-            // Make sure it's safe to proceed
-            if (this.SqlJs === null) {
-                throw 'Must call init() before restoring a database'
-            }
-
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
@@ -520,7 +415,7 @@ export const useDatabasesStore = defineStore('databases', {
             context.SqlJsDatabase.close()
 
             // Replace the SQL.js database with its original
-            context.SqlJsDatabase = new this.SqlJs.Database(JSON.parse(context.BrowserDatabase.originalDefinition))
+            context.SqlJsDatabase = new SqlJsDBWrapper(JSON.parse(context.BrowserDatabase.originalDefinition))
 
             // Store our "updated" definition as the new current
             this.saveChangesToBrowser(id, 'definition')
@@ -565,14 +460,14 @@ export const useDatabasesStore = defineStore('databases', {
                 // Changes in data or structure
                 if (type === undefined || type === 'definition') {
                     // Get the current definition and the old definition
-                    const newDef = await this.exportSqlJsToJSON(context.SqlJsDatabase)
+                    const newDef = await context.SqlJsDatabase.exportToJSON()
                     const oldDef = context.BrowserDatabase.currentDefinition
 
                     // If there have been changes, update the stored definition
                     // and our current table list
                     if (newDef !== oldDef) {
                         context.BrowserDatabase.currentDefinition = newDef
-                        context.tables = context.getTables()
+                        context.tables = await context.getTables()
                         changes.currentDefinition = newDef
                     }
                 }
