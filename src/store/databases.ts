@@ -436,7 +436,7 @@ export const useDatabasesStore = defineStore('databases', {
             context.SqlJsDatabase.close()
 
             // Replace the SQL.js database with its original
-            context.SqlJsDatabase = new SqlJsDBWrapper(JSON.parse(context.BrowserDatabase.originalDefinition))
+            context.SqlJsDatabase = new SqlJsDBWrapper(context.BrowserDatabase.originalDefinition)
 
             // Store our "updated" definition as the new current
             this.saveChangesToBrowser(id, 'definition')
