@@ -422,6 +422,7 @@ export const useDatabasesStore = defineStore('databases', {
                 return
             }
             await this.activeContext.SqlJsDatabase.close()
+            await this.activeContext.loadTables()
             this.activeQuery.isRunning = false
             this.activeQuery.progress = 0
         },
