@@ -198,7 +198,7 @@ class DatabaseContext {
         }
 
         // Make sure our active query will still be valid after removing
-        if (this.activeQueryIndex > index) {
+        if (this.activeQueryIndex > index || (this.activeQueryIndex === index && index === (this.Queries.length - 1))) {
             this.activeQueryIndex--
         }
 
