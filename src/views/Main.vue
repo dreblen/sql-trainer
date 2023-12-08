@@ -278,11 +278,13 @@
                         color="primary"
                         v-model="databasesStore.creationProgressScripts"
                         :indeterminate="databasesStore.creationProgressIndeterminate"
+                        :stream="addDatabaseDialogIsSaving && !databasesStore.creationProgressIndeterminate"
                     />
                     <v-progress-linear
                         color="primary"
                         v-model="databasesStore.creationProgressStatements"
                         :indeterminate="databasesStore.creationProgressIndeterminate"
+                        :stream="addDatabaseDialogIsSaving && !databasesStore.creationProgressIndeterminate"
                     />
                 </v-card-text>
                 <v-card-actions>
