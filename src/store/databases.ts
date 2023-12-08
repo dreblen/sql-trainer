@@ -44,11 +44,15 @@ class DatabaseContextQuery {
         this.text = ''
         this.results = []
         this.error = ''
+        this.isRunning = false
+        this.progress = 0
     }
 
     text: string
     results: Array<SqlJsTypes.QueryExecResult>
     error: string
+    isRunning: boolean
+    progress: number
 }
 
 // Represents the selection of a trainer database and everything that goes along
@@ -391,7 +395,10 @@ export const useDatabasesStore = defineStore('databases', {
             activeQuery.error = ''
 
             // Execute our current query statements and store the results
-            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text)
+            activeQuery.isRunning = true
+            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text, (value) => {
+                activeQuery.progress = value
+            })
                 .catch((e) => {
                     if (e.err) {
                         activeQuery.error = e.err.message
@@ -400,6 +407,8 @@ export const useDatabasesStore = defineStore('databases', {
                         return e.results
                     }
                 })
+            activeQuery.isRunning = false
+            activeQuery.progress = 0
 
             // Save changes to the browser if appropriate (logic is delegated)
             this.saveChangesToBrowser(this.activeContext.id)
@@ -475,7 +484,7 @@ export const useDatabasesStore = defineStore('databases', {
                 // Changes to queries
                 if (type === undefined || type === 'query') {
                     // Get the current query list and the old query list
-                    const newQueries = JSON.stringify(context.Queries)
+                    const newQueries = JSON.stringify(context.Queries.map((q) => ({...q, progress: 0, isRunning: false})))
                     const oldQueries = context.BrowserDatabase.queries
 
                     // If there have been changes, update the stored definition

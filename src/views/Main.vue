@@ -132,8 +132,21 @@
                                 block
                                 @click="databasesStore.run"
                                 id="btnRunQuery"
+                                :loading="databasesStore.activeQuery.isRunning"
                             >
                                 Run Query (<kbd>F9</kbd>)
+                                <template v-slot:loader>
+                                    <v-progress-linear
+                                        v-model="databasesStore.activeQuery.progress"
+                                        stream
+                                        height="20"
+                                        color="secondary"
+                                    >
+                                        <template v-slot:default="{ value }">
+                                            Running Query... ({{ value.toFixed(0) }}%)
+                                        </template>
+                                    </v-progress-linear>
+                                </template>
                             </v-btn>
                         </v-col>
                     </v-row>
