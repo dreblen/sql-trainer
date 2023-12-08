@@ -150,6 +150,17 @@
                             </v-btn>
                         </v-col>
                     </v-row>
+                    <v-row v-if="databasesStore.activeQuery.isRunning">
+                        <v-col>
+                            <v-btn
+                                color="error"
+                                block
+                                @click="databasesStore.stop"
+                            >
+                                Stop Query
+                            </v-btn>
+                        </v-col>
+                    </v-row>
                     <template
                         v-for="(resultset,i) in databasesStore.activeQuery.results"
                         :key="i"

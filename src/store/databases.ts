@@ -413,6 +413,15 @@ export const useDatabasesStore = defineStore('databases', {
             // Save changes to the browser if appropriate (logic is delegated)
             this.saveChangesToBrowser(this.activeContext.id)
         },
+        async stop() {
+            // Ensure there is a running query in the active context
+            if (this.activeContext === null || this.activeQuery === null || !this.activeQuery.isRunning) {
+                return
+            }
+            await this.activeContext.SqlJsDatabase.close()
+            this.activeQuery.isRunning = false
+            this.activeQuery.progress = 0
+        },
         async restoreOriginalToBrowser(id: number) {
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)

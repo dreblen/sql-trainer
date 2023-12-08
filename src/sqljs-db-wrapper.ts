@@ -88,9 +88,11 @@ export class SqlJsDBWrapper {
      * @param resolve Promise resolve method.
      * @param reject Promise reject method.
      * @param progress Event handler for the worker's progress indication.
+     * @param noWait If true, the locking logic for the worker will be ignored
+     * and the worker instance will be returned immediately. Use with caution.
      * @returns New Worker object.
      */
-    private async getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number) => void): Promise<Worker> {
+    private async getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number) => void, noWait?: boolean): Promise<Worker> {
         // When we receive a message from the worker, handle special values
         // based on a type classifier, but otherwise call our resolve method
         // using whatever value was sent in the message
@@ -158,10 +160,12 @@ export class SqlJsDBWrapper {
             })
         } else {
             // Wait for the worker to be available
-            while (this.workerIsLocked) {
-                await new Promise((resolve) => {
-                    setTimeout(() => { resolve(null) }, 500)
-                })
+            if (noWait !== true) {
+                while (this.workerIsLocked) {
+                    await new Promise((resolve) => {
+                        setTimeout(() => { resolve(null) }, 500)
+                    })
+                }
             }
 
             // Claim and return the worker
@@ -244,13 +248,15 @@ export class SqlJsDBWrapper {
      * @returns Promise of nothing.
      */
     public async close (): Promise<void> {
-        if (this.isWorker) {
+        if (this.isWorker && this.worker !== null) {
+            // Don't worry about waiting for a valid lock, since we're trying
+            // to forcibly close/dispose anyway
             return new Promise(async (resolve, reject) => {
                 const worker = await this.getWorker(() => {
                     worker.terminate()
                     this.worker = null
                     resolve()
-                }, reject)
+                }, reject, undefined, true)
                 worker.postMessage({
                     type: 'close'
                 })
