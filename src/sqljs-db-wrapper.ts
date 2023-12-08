@@ -33,6 +33,7 @@ export class SqlJsDBWrapper {
 
         // Initialize property values
         this.worker = null
+        this.workerIsLocked = false
         this.db = null
         this.definition = definition
     }
@@ -51,6 +52,14 @@ export class SqlJsDBWrapper {
      * This will always be null if the instance is not using a Worker.
      */
     private worker: Worker|null
+
+    /**
+     * Whether or not the worker is currently occupied processing something.
+     * Because of the messaging system and not wanting to create multiple
+     * workers, we must maintain an exclusive lock on the worker at any given
+     * time.
+     */
+    private workerIsLocked: boolean
 
     /**
      * The SQL.js database for this instance, or null if one has not been
@@ -81,7 +90,7 @@ export class SqlJsDBWrapper {
      * @param progress Event handler for the worker's progress indication.
      * @returns New Worker object.
      */
-    private getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number) => void): Promise<Worker> {
+    private async getWorker (resolve: (value: any) => void, reject: (reason?: any) => void, progress?: (value: number) => void): Promise<Worker> {
         // When we receive a message from the worker, handle special values
         // based on a type classifier, but otherwise call our resolve method
         // using whatever value was sent in the message
@@ -94,6 +103,7 @@ export class SqlJsDBWrapper {
                     // handle the rejection upstream.
                     case 'error': {
                         reject(m.data.value)
+                        this.workerIsLocked = false
                         break
                     }
                     // Progress messages contain a numerical value (0..100)
@@ -109,6 +119,7 @@ export class SqlJsDBWrapper {
                 }
             } else {
                 resolve(m.data)
+                this.workerIsLocked = false
             }
         }
 
@@ -117,6 +128,7 @@ export class SqlJsDBWrapper {
         // logic in the onmessage handler.
         const onerror = (err: ErrorEvent) => {
             reject(err)
+            this.workerIsLocked = false
         }
 
         // Create the worker object from scratch if needed, or reuse the
@@ -124,6 +136,7 @@ export class SqlJsDBWrapper {
         // are the ones that will be used by the worker going forward
         if (this.worker === null) {
             // Use a promise so we can give the worker some time to initialize
+            this.workerIsLocked = true
             return new Promise((resolve, reject) => {
                 this.worker = new SqlJsDBWorker()
 
@@ -144,6 +157,15 @@ export class SqlJsDBWrapper {
                 })
             })
         } else {
+            // Wait for the worker to be available
+            while (this.workerIsLocked) {
+                await new Promise((resolve) => {
+                    setTimeout(() => { resolve(null) }, 500)
+                })
+            }
+
+            // Claim and return the worker
+            this.workerIsLocked = true
             this.worker.onmessage = onmessage
             this.worker.onerror = onerror
             return new Promise((resolve) => { resolve(this.worker as Worker) })
