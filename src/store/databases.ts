@@ -43,6 +43,7 @@ class DatabaseContextQuery {
     constructor() {
         this.text = ''
         this.results = []
+        this.resultHeights = []
         this.error = ''
         this.isRunning = false
         this.isStopping = false
@@ -51,6 +52,7 @@ class DatabaseContextQuery {
 
     text: string
     results: Array<SqlJsTypes.QueryExecResult>
+    resultHeights: Array<number>
     error: string
     isRunning: boolean
     isStopping: boolean
@@ -394,6 +396,7 @@ export const useDatabasesStore = defineStore('databases', {
 
             // Remove any existing results/errors for the query
             activeQuery.results = []
+            activeQuery.resultHeights = []
             activeQuery.error = ''
 
             // Execute our current query statements and store the results
@@ -402,6 +405,7 @@ export const useDatabasesStore = defineStore('databases', {
                 activeQuery.progress = value
                 if (result) {
                     activeQuery.results.push(result)
+                    activeQuery.resultHeights.push(300)
                 }
             })
                 .catch((e) => {

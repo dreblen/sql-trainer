@@ -175,18 +175,46 @@
                         </v-col>
                     </v-row>
                     <template
-                        v-for="(resultset,i) in databasesStore.activeQuery.results"
-                        :key="i"
+                        v-for="(resultset,setNum) in databasesStore.activeQuery.results"
+                        :key="setNum"
                     >
                         <v-row>
                             <v-col>
                                 <v-card variant="outlined">
+                                    <!-- The table is intentionally placed
+                                    outside of the card text so it fills to the
+                                    edges of the card-->
                                     <template v-if="resultset.columns.length > 0">
+                                        <v-card-text>
+                                            <v-container>
+                                                <v-row>
+                                                    <v-col>
+                                                        <v-slider
+                                                            v-model="databasesStore.activeQuery.resultHeights[setNum]"
+                                                            density="compact"
+                                                            color="secondary"
+                                                            prepend-icon="mdi-arrow-split-horizontal"
+                                                            thumb-label
+                                                            min="0"
+                                                            max="600"
+                                                            @end="onResultHeightSliderEnd"
+                                                        >
+                                                            <template v-slot:thumb-label="{ modelValue }">
+                                                                {{ Math.max(0, Math.ceil((modelValue - 50) / 36)) }}
+                                                            </template>
+                                                            <template v-slot:append>
+                                                                {{ resultset.values.length }}
+                                                            </template>
+                                                        </v-slider>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-container>
+                                        </v-card-text>
                                         <v-data-table-virtual
                                             fixed-header
                                             :headers="[{ title: '#', key: '0', sortable: false, width: '1em' },...resultset.columns.map((c, i) => ({ title: c, key: (i+1).toString(), sortable: false }))]"
                                             :items="mapResultValues(resultset.values)"
-                                            height="300"
+                                            :height="databasesStore.activeQuery.resultHeights[setNum]"
                                             density="compact"
                                         >
                                             <template
@@ -604,6 +632,9 @@ export default {
                 })
                 btnRunQuery.dispatchEvent(enterup)
             }
+        },
+        onResultHeightSliderEnd: function () {
+            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
         },
         mapResultValues: function (values: SqlValue[][]) {
             return values.map((row, i) => {
