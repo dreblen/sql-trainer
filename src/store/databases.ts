@@ -443,6 +443,9 @@ export const useDatabasesStore = defineStore('databases', {
                 throw `Could not find database context with ID ${id}`
             }
 
+            // Indicate that we are making a major change to lock the UI
+            this.isInitializing = true
+
             // Close the current version of the SQL.js database
             context.SqlJsDatabase.close()
 
@@ -452,6 +455,9 @@ export const useDatabasesStore = defineStore('databases', {
             // Store our "updated" definition as the new current
             await this.saveChangesToBrowser(id, 'definition')
             await context.loadTables()
+
+            // Unlock the UI
+            this.isInitializing = false
         },
         async saveChangesToBrowser(id: number, type?: 'definition'|'query'): Promise<boolean> {
             // If we're in the middle of *actually* saving pending changes,

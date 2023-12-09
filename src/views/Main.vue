@@ -81,7 +81,7 @@
                         </v-select>
                     </v-col>
                 </v-row>
-                <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null">
+                <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null && !databasesStore.isInitializing">
                     <v-row>
                         <v-col
                             cols="9"
