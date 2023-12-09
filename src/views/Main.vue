@@ -339,7 +339,7 @@
                         v-model="tableSummaryDrawerWidth"
                         density="compact"
                         hide-details
-                        label="Width"
+                        prepend-icon="mdi-arrow-split-vertical"
                         min="256"
                         max="800"
                         class="my-1 mr-5"
