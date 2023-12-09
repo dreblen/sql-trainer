@@ -113,7 +113,21 @@
                             />
                         </v-col>
                     </v-row>
-                    <v-row style="height: 40vh;">
+                    <v-row class="my-0">
+                        <v-col>
+                            <v-slider
+                                v-model="editorHeight"
+                                density="compact"
+                                hide-details
+                                color="secondary"
+                                prepend-icon="mdi-arrow-split-horizontal"
+                                min="0"
+                                max="90"
+                            >
+                            </v-slider>
+                        </v-col>
+                    </v-row>
+                    <v-row class="my-0" :style="`height: ${editorHeight}vh;`">
                         <v-col style="height: 100%;">
                             <v-card style="height: 100%;">
                                 <codemirror
@@ -425,6 +439,7 @@ export default {
             tableSummaryDrawerWidth: 256,
             tableSummaryFilterText: '',
 
+            editorHeight: 40,
             activeTabIndex: 0
         }
     },
