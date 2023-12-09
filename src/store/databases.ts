@@ -103,14 +103,19 @@ class DatabaseContext {
      * @returns Array of table name strings.
      */
     public async getTableNames (): Promise<Array<string>> {
-        const results = await this.SqlJsDatabase.exec(`
-            SELECT name
-            FROM sqlite_master
-            WHERE type IN ('table','view')
-        `)
-        if (results.length > 0) {
-            return results[0].values.map((row) => row[0] as string).sort()
-        } else {
+        try {
+            const results = await this.SqlJsDatabase.exec(`
+                SELECT name
+                FROM sqlite_master
+                WHERE type IN ('table','view')
+            `)
+            if (results.length > 0) {
+                return results[0].values.map((row) => row[0] as string).sort()
+            } else {
+                return []
+            }
+        } catch (rejection) {
+            console.log('Error loading table names: ', (rejection as { err: string }).err)
             return []
         }
     }
@@ -128,8 +133,9 @@ class DatabaseContext {
         }
 
         // Get foreign key information
-        const fkResults = await this.SqlJsDatabase.exec(`PRAGMA foreign_key_list(${name})`)
         let fk: Array<DatabaseTableColumnForeignKey> = []
+        const fkResults = await this.SqlJsDatabase.exec(`PRAGMA foreign_key_list(${name})`)
+            .catch(() => [])
         if (fkResults && fkResults.length > 0) {
             fk = fkResults[0].values.map((row) => ({
                 localName: row[3] as string,
@@ -138,16 +144,26 @@ class DatabaseContext {
         }
 
         // Get column information
-        const results = await this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
-        return results[0].values.map((row) => ({
-            id: row[0],
-            name: row[1],
-            type: row[2],
-            allowNull: (row[3] == '0') ? true : false,
-            default: row[4],
-            isPK: (row[5] == '1') ? true : false,
-            fk: fk.find((k) => k.localName === row[1])?.foreignName || null
-        } as DatabaseTableColumn))
+        try {
+            const results = await this.SqlJsDatabase.exec(`PRAGMA table_info(${name})`)
+            return results[0].values.map((row) => ({
+                id: row[0],
+                name: row[1],
+                type: row[2],
+                allowNull: (row[3] == '0') ? true : false,
+                default: row[4],
+                isPK: (row[5] == '1') ? true : false,
+                fk: fk.find((k) => k.localName === row[1])?.foreignName || null
+            } as DatabaseTableColumn))
+        } catch (rejection) {
+            return [
+                {
+                    id: 1,
+                    name: 'Error Loading Data',
+                    type: (rejection as { err: string}).err
+                } as DatabaseTableColumn
+            ]
+        }
     }
 
     /**

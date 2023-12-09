@@ -54,7 +54,16 @@ onmessage = async function (m) {
             if (!db) {
                 return
             }
-            this.postMessage(db.exec(d.sql))
+            try {
+                this.postMessage(db.exec(d.sql))
+            } catch (err) {
+                this.postMessage({
+                    type: 'error',
+                    value: {
+                        err
+                    }
+                })
+            }
             break
         }
         case 'close': {

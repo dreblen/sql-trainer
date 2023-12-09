@@ -395,9 +395,15 @@
                     <template v-slot:activator="{ props }">
                         <v-list-item
                             v-bind="props"
-                            :title="table.name"
                             style="background: grey; color: white;"
-                        />
+                        >
+                            <v-list-item-title>
+                                <v-icon v-if="table.columns.length > 0 && table.columns[0].name === 'Error Loading Data'">
+                                    mdi-alert-circle
+                                </v-icon>
+                                {{ table.name }}
+                            </v-list-item-title>
+                        </v-list-item>
                     </template>
                     <v-list-item
                         v-for="column in table.columns"
@@ -406,7 +412,10 @@
                     >
                         <v-list-item-title>{{ column.name }}</v-list-item-title>
                         <v-list-item-subtitle>
-                            {{ `${column.type}, ${column.allowNull ? 'NULL' : 'NOT NULL'}` }}
+                            {{ column.type }}
+                            <span v-if="column.name !== 'Error Loading Data'">
+                                {{ `, ${column.allowNull ? 'NULL' : 'NOT NULL'}` }}
+                            </span>
                         </v-list-item-subtitle>
                         <v-list-item-subtitle v-if="column.fk">
                             {{ `(${column.fk})` }}
