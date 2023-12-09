@@ -192,6 +192,7 @@
                                                         <v-slider
                                                             v-model="databasesStore.activeQuery.resultHeights[setNum]"
                                                             density="compact"
+                                                            hide-details
                                                             color="secondary"
                                                             prepend-icon="mdi-arrow-split-horizontal"
                                                             thumb-label
@@ -200,7 +201,7 @@
                                                             @end="onResultHeightSliderEnd"
                                                         >
                                                             <template v-slot:thumb-label="{ modelValue }">
-                                                                {{ Math.max(0, Math.ceil((modelValue - 50) / 36)) }}
+                                                                {{ Math.max(0, Math.ceil((modelValue - 50) / 36)) }}&nbsp;rows
                                                             </template>
                                                             <template v-slot:append>
                                                                 {{ resultset.values.length }}
