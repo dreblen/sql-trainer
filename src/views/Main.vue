@@ -13,7 +13,24 @@
                             label="Database"
                             :loading="databasesStore.isInitializing"
                             :disabled="databasesStore.isInitializing"
+                            :hide-details="!showDatabaseControls || databasesStore.activeContext === null"
                         >
+                            <template v-slot:prepend v-if="databasesStore.activeContext !== null">
+                                <v-checkbox
+                                    v-model="showDatabaseControls"
+                                    hide-details
+                                    color="primary"
+                                >
+                                    <template v-slot:input>
+                                        <v-icon
+                                            class="pa-5"
+                                            @click="showDatabaseControls = !showDatabaseControls"
+                                        >
+                                            mdi-cog
+                                        </v-icon>
+                                    </template>
+                                </v-checkbox>
+                            </template>
                             <template v-slot:append>
                                 <v-btn
                                     icon="mdi-plus"
@@ -28,18 +45,8 @@
                                     size="22"
                                 />
                             </template>
-                        </v-select>
-                    </v-col>
-                </v-row>
-                <v-row
-                    v-if="databasesStore.activeContext !== null"
-                    class="my-0"
-                >
-                    <v-col>
-                        <v-expansion-panels>
-                            <v-expansion-panel>
-                                <v-expansion-panel-title>Database Controls</v-expansion-panel-title>
-                                <v-expansion-panel-text>
+                            <template v-slot:details>
+                                <v-container>
                                     <v-row>
                                         <v-col>
                                             <v-btn
@@ -69,9 +76,9 @@
                                             </v-btn>
                                         </v-col>
                                     </v-row>
-                                </v-expansion-panel-text>
-                            </v-expansion-panel>
-                        </v-expansion-panels>
+                                </v-container>
+                            </template>
+                        </v-select>
                     </v-col>
                 </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null">
@@ -434,6 +441,8 @@ export default {
             addDatabaseDialogName: '',
             addDatabaseDialogIsSaving: false,
             addDatabaseDialogScriptError: '',
+
+            showDatabaseControls: false,
 
             showTableSummaryDrawer: false,
             tableSummaryDrawerWidth: 256,
