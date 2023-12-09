@@ -95,6 +95,7 @@ class DatabaseContext {
     activeQueryIndex: number
 
     saveTimeoutID: number|null
+    savePromiseResolve?: (value: boolean) => void
 
     /**
      * Retrieve list of table names in this context.
@@ -414,6 +415,7 @@ export const useDatabasesStore = defineStore('databases', {
                 })
             activeQuery.isRunning = false
             activeQuery.progress = 0
+            await this.activeContext.loadTables()
 
             // Save changes to the browser if appropriate (logic is delegated)
             this.saveChangesToBrowser(this.activeContext.id)
@@ -448,84 +450,98 @@ export const useDatabasesStore = defineStore('databases', {
             context.SqlJsDatabase = new SqlJsDBWrapper(context.BrowserDatabase.originalDefinition)
 
             // Store our "updated" definition as the new current
-            this.saveChangesToBrowser(id, 'definition')
+            await this.saveChangesToBrowser(id, 'definition')
+            await context.loadTables()
         },
-        async saveChangesToBrowser(id: number, type?: 'definition'|'query') {
+        async saveChangesToBrowser(id: number, type?: 'definition'|'query'): Promise<boolean> {
             // If we're in the middle of *actually* saving pending changes,
             // ignore this call
             if (this.isSavingContext === true) {
-                return
+                return new Promise((resolve) => { resolve(false) })
             }
             
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
-                throw `Could not find database context with ID ${id}`
+                return new Promise((resolve, reject) => { reject(`Could not find database context with ID ${id}`) })
             }
 
             this.hasPendingChanges = true
 
-            // Cancel any pending save
-            if (context.saveTimeoutID !== null) {
-                window.clearTimeout(context.saveTimeoutID)
-                context.saveTimeoutID = null
-            }
+            return new Promise((resolve, reject) => {
+                // Cancel any pending save
+                if (context.saveTimeoutID !== null) {
+                    window.clearTimeout(context.saveTimeoutID)
+                    context.saveTimeoutID = null
 
-            // Schedule a potential save action
-            context.saveTimeoutID = window.setTimeout(async () => {
-                // Make sure it's safe to proceed
-                if (this.BrowserDB === null) {
-                    throw 'Must call init() before saving changes to browser'
-                }
-
-                this.isSavingContext = true
-
-                // Store our intended changes so we don't try to make two
-                // separate update calls
-                const changes = {} as {
-                    currentDefinition?: string
-                    queries?: string
-                }
-
-                // Changes in data or structure
-                if (type === undefined || type === 'definition') {
-                    // Get the current definition and the old definition
-                    const newDef = await context.SqlJsDatabase.exportToJSON()
-                    const oldDef = context.BrowserDatabase.currentDefinition
-
-                    // If there have been changes, update the stored definition
-                    // and our current table list
-                    if (newDef !== oldDef) {
-                        context.BrowserDatabase.currentDefinition = newDef
-                        context.tables = await context.getTables()
-                        changes.currentDefinition = newDef
+                    if (context.savePromiseResolve) {
+                        context.savePromiseResolve(false)
                     }
+                    context.savePromiseResolve = undefined
                 }
 
-                // Changes to queries
-                if (type === undefined || type === 'query') {
-                    // Get the current query list and the old query list
-                    const newQueries = JSON.stringify(context.Queries.map((q) => ({...q, progress: 0, isRunning: false})))
-                    const oldQueries = context.BrowserDatabase.queries
-
-                    // If there have been changes, update the stored definition
-                    if (newQueries !== oldQueries) {
-                        context.BrowserDatabase.queries = newQueries
-                        changes.queries = newQueries
+                // Schedule a potential save action
+                context.saveTimeoutID = window.setTimeout(async () => {
+                    // Make sure it's safe to proceed
+                    if (this.BrowserDB === null) {
+                        reject('Must call init() before saving changes to browser')
+                        return
                     }
-                }
 
-                // Persist our changes in the browser database
-                if (changes.currentDefinition || changes.queries) {
-                    await this.BrowserDB.update(context.id, changes)
-                }
+                    this.isSavingContext = true
 
-                this.hasPendingChanges = false
+                    // Store our intended changes so we don't try to make two
+                    // separate update calls
+                    const changes = {} as {
+                        currentDefinition?: string
+                        queries?: string
+                    }
 
-                // Clear the timeout value
-                context.saveTimeoutID = null
-                this.isSavingContext = false
-            }, 1000)
+                    // Changes in data or structure
+                    if (type === undefined || type === 'definition') {
+                        // Get the current definition and the old definition
+                        const newDef = await context.SqlJsDatabase.exportToJSON()
+                        const oldDef = context.BrowserDatabase.currentDefinition
+
+                        // If there have been changes, update the stored definition
+                        // and our current table list
+                        if (newDef !== oldDef) {
+                            context.BrowserDatabase.currentDefinition = newDef
+                            context.tables = await context.getTables()
+                            changes.currentDefinition = newDef
+                        }
+                    }
+
+                    // Changes to queries
+                    if (type === undefined || type === 'query') {
+                        // Get the current query list and the old query list
+                        const newQueries = JSON.stringify(context.Queries.map((q) => ({...q, progress: 0, isRunning: false})))
+                        const oldQueries = context.BrowserDatabase.queries
+
+                        // If there have been changes, update the stored definition
+                        if (newQueries !== oldQueries) {
+                            context.BrowserDatabase.queries = newQueries
+                            changes.queries = newQueries
+                        }
+                    }
+
+                    // Persist our changes in the browser database
+                    if (changes.currentDefinition || changes.queries) {
+                        await this.BrowserDB.update(context.id, changes)
+                        resolve(true)
+                    } else {
+                        resolve(false)
+                    }
+
+                    this.hasPendingChanges = false
+
+                    // Clear the timeout value
+                    context.saveTimeoutID = null
+                    context.savePromiseResolve = undefined
+                    this.isSavingContext = false
+                }, 1000)
+                context.savePromiseResolve = resolve
+            })
         }
     }
 })
