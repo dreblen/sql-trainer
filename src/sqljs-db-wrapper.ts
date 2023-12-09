@@ -6,6 +6,17 @@ import type * as SqlJsTypes from 'sql.js'
 type ByteDefinition = ArrayLike<number>|Buffer
 
 /**
+ * Public instance values from the SqlJsDBWrapper class. See its definitions for
+ * more details.
+ */
+export interface ISqlJsDBWrapper {
+    exportToJSON (): Promise<string>
+    exec (sql: string): Promise<Array<SqlJsTypes.QueryExecResult>>
+    close (): Promise<void>
+    runStatements (sql: string, onprogress?: (value: number, result?: SqlJsTypes.QueryExecResult) => void): Promise<Array<SqlJsTypes.QueryExecResult>>
+}
+
+/**
  * Promised-based wrapper providing access to SQL.js databases for the
  * application.
  * 
@@ -14,7 +25,7 @@ type ByteDefinition = ArrayLike<number>|Buffer
  * use SQL.js directly. This is the high-level API that everything in the app
  * should use.
  */
-export class SqlJsDBWrapper {
+export class SqlJsDBWrapper implements ISqlJsDBWrapper {
 
     /**
      * Create a new wrapper for a SQL.js database instance.

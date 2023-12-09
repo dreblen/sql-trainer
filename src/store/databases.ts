@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 import { DBWrapper } from '@/db-wrapper'
 
-import { SqlJsDBWrapper } from '@/sqljs-db-wrapper'
+import { SqlJsDBWrapper, ISqlJsDBWrapper } from '@/sqljs-db-wrapper'
 import * as SqlJsTypes from 'sql.js'
 
 // Represents the schema of our IndexedDB object store
@@ -60,7 +60,7 @@ class DatabaseContextQuery {
 // Represents the selection of a trainer database and everything that goes along
 // with it (browser DB, SQLite DB, queries, results, etc.)
 class DatabaseContext {
-    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: SqlJsDBWrapper, queries: Array<DatabaseContextQuery>) {
+    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: ISqlJsDBWrapper, queries: Array<DatabaseContextQuery>) {
         this.id = id
         this.name = name
         this.BrowserDatabase = BrowserDatabase
@@ -85,7 +85,7 @@ class DatabaseContext {
     id: number
     name: string
     BrowserDatabase: TrainerDatabase
-    SqlJsDatabase: SqlJsDBWrapper
+    SqlJsDatabase: ISqlJsDBWrapper
 
     tables: Array<DatabaseTable>
 
