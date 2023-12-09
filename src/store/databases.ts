@@ -344,11 +344,7 @@ export const useDatabasesStore = defineStore('databases', {
             // don't run out of memory as easily
             for (let i = 0; i < originalDefinitionScripts.length; i++) {
                 const originalDefinition = originalDefinitionScripts[i]
-                let bytesProcessed = 0
-                let totalBytes = -1
-
                 await newDB.runStatements(originalDefinition, (value) => { this.creationProgressStatements = value })
-
                 this.creationProgressScripts = 100.0 * (i + 1) / originalDefinitionScripts.length
             }
 
