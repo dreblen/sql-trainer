@@ -402,6 +402,9 @@
                                     mdi-alert-circle
                                 </v-icon>
                                 {{ table.name }}
+                                <v-icon v-if="table.type === 'view'">
+                                    mdi-alpha-v-box-outline
+                                </v-icon>
                             </v-list-item-title>
                         </v-list-item>
                     </template>
@@ -421,6 +424,10 @@
                             {{ `(${column.fk})` }}
                         </v-list-item-subtitle>
                     </v-list-item>
+                    <v-list-item
+                        title="View SQL"
+                        @click="addQueryAndSwitch(table.definition)"
+                    />
                 </v-list-group>
             </v-list>
         </v-navigation-drawer>
@@ -635,6 +642,17 @@ export default {
             } finally {
                 this.addDatabaseDialogIsSaving = false
             }
+        },
+        addQueryAndSwitch: function (sql?: string) {
+            // Nothing to do if we don't have an active context
+            if (this.databasesStore.activeContext === null) {
+                return
+            }
+
+            // Add the new query and switch to it, assuming it will be the one
+            // at the end of the list
+            this.databasesStore.activeContext.addQuery(sql)
+            this.databasesStore.activeContext.activeQueryIndex = this.databasesStore.activeContext.Queries.length - 1
         },
         editorKeyUp: function (ev: KeyboardEvent) {
             if (ev.key === 'F9') {

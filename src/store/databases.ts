@@ -31,9 +31,18 @@ interface DatabaseTableColumn {
     fk: string|null
 }
 
-// Represents a table definition in a database
-interface DatabaseTable {
+// Classification of a "table" as a real table or a view
+type TableType = 'table'|'view'
+
+// Simple listing of a table's essential details
+interface TableDetails {
     name: string
+    type: TableType
+    definition: string
+}
+
+// Represents a table definition in a database
+interface DatabaseTable extends TableDetails {
     columns: Array<DatabaseTableColumn>
 }
 
@@ -98,26 +107,39 @@ class DatabaseContext {
     savePromiseResolve?: (value: boolean) => void
 
     /**
+     * Retrieve list of table details from SQL.js.
+     * 
+     * @returns Array of table details.
+     */
+    public async getTableDetails (): Promise<Array<TableDetails>> {
+        try {
+            const results = await this.SqlJsDatabase.exec(`
+                SELECT name, type, sql
+                FROM sqlite_master
+                WHERE type IN ('table','view')
+            `)
+            if (results.length > 0) {
+                return results[0].values.map((row) => ({
+                    name: row[0] as string,
+                    type: row[1] as TableType,
+                    definition: row[2] as string
+                }))
+            } else {
+                return []
+            }
+        } catch (rejection) {
+            console.log('Error loading table details: ', (rejection as { err: string }).err)
+            return []
+        }
+    }
+
+    /**
      * Retrieve list of table names in this context.
      * 
      * @returns Array of table name strings.
      */
     public async getTableNames (): Promise<Array<string>> {
-        try {
-            const results = await this.SqlJsDatabase.exec(`
-                SELECT name
-                FROM sqlite_master
-                WHERE type IN ('table','view')
-            `)
-            if (results.length > 0) {
-                return results[0].values.map((row) => row[0] as string).sort()
-            } else {
-                return []
-            }
-        } catch (rejection) {
-            console.log('Error loading table names: ', (rejection as { err: string }).err)
-            return []
-        }
+        return (await this.getTableDetails()).map((table) => table.name)
     }
 
     /**
@@ -172,13 +194,27 @@ class DatabaseContext {
      * @returns Array of table objects, with column details.
      */
     public async getTables (): Promise<Array<DatabaseTable>> {
+        // Retrieve our table information
         const tables: Array<DatabaseTable> = []
-        for (const tableName of await this.getTableNames()) {
+        for (const tableDetails of await this.getTableDetails()) {
             tables.push({
-                name: tableName,
-                columns: await this.getTableColumns(tableName)
+                name: tableDetails.name,
+                type: tableDetails.type,
+                definition: tableDetails.definition,
+                columns: await this.getTableColumns(tableDetails.name)
             })
         }
+
+        // Sort by table name and finish
+        tables.sort((a, b) => {
+            if (a.name < b.name) {
+                return -1
+            }
+            if (a.name > b.name) {
+                return 1
+            }
+            return 0
+        })
         return tables
     }
 
@@ -194,10 +230,15 @@ class DatabaseContext {
     /**
      * Convenience method to create new, empty query.
      * 
+     * @param sql Optional query text to prepopulate.
      * @returns Nothing
      */
-    public addQuery (): void {
-        this.Queries.push(new DatabaseContextQuery)
+    public addQuery (sql?: string): void {
+        const q = new DatabaseContextQuery
+        if (sql) {
+            q.text = sql
+        }
+        this.Queries.push(q)
     }
 
     /**
