@@ -47,7 +47,7 @@
                         </v-select>
                     </v-col>
                 </v-row>
-                <v-row v-if="showDatabaseControls && databasesStore.activeContext !== null">
+                <v-row v-if="!databasesStore.isInitializing && showDatabaseControls && databasesStore.activeContext !== null">
                     <v-col>
                         <v-btn
                             block
