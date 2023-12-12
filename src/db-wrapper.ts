@@ -147,7 +147,7 @@ export class DBWrapper {
                 })
             })
         } else {
-            return this.getIDBWrapper().get(keyPropName)
+            return this.getIDBWrapper().getAllWithKeys(keyPropName)
         }
     }
 
