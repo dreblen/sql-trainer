@@ -236,6 +236,7 @@
                                             :items="mapResultValues(resultset.values)"
                                             :height="databasesStore.activeQuery.resultHeights[setNum]"
                                             density="compact"
+                                            hide-no-data
                                         >
                                             <template
                                                 v-for="(col, i) in ['#',...resultset.columns]"
