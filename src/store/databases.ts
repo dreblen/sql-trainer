@@ -1,17 +1,31 @@
 import { defineStore } from 'pinia'
 
+import * as HashWrapper from '@/hash-wrapper'
 import { DBWrapper } from '@/db-wrapper'
 
 import { SqlJsDBWrapper, ISqlJsDBWrapper } from '@/sqljs-db-wrapper'
 import * as SqlJsTypes from 'sql.js'
 
-// Represents the schema of our IndexedDB object store
-interface TrainerDatabase {
+// Represent the schemas of our IndexedDB object stores
+// (all ID values are the same so we don't have to make separate indexes)
+interface BrowserMetaSchema {
     id?: number
     name: string
-    originalDefinition: string
-    currentDefinition: string
-    queries: string
+    definitionHash: string
+    queryResultsHash: string
+}
+interface BrowserDefinitionsSchema {
+    id?: number
+    definition: string
+}
+interface BrowserQueriesSchema {
+    id?: number
+    texts: string
+}
+interface BrowserQueryResultsSchema {
+    id?: number
+    results: string
+    resultHeights: string
 }
 
 // Represents a foreign key relationship for a column
@@ -71,10 +85,11 @@ class DatabaseContextQuery {
 // Represents the selection of a trainer database and everything that goes along
 // with it (browser DB, SQLite DB, queries, results, etc.)
 class DatabaseContext {
-    constructor(id: number, name: string, BrowserDatabase: TrainerDatabase, SqlJsDatabase: ISqlJsDBWrapper, queries: Array<DatabaseContextQuery>) {
+    constructor(id: number, name: string, BrowserDatabase: BrowserMetaSchema, BrowserQueries: Array<string>, SqlJsDatabase: ISqlJsDBWrapper, queries: Array<DatabaseContextQuery>) {
         this.id = id
         this.name = name
         this.BrowserDatabase = BrowserDatabase
+        this.BrowserQueries = BrowserQueries
         this.SqlJsDatabase = SqlJsDatabase
 
         // Loading tables is an async operation, which we can't do in the
@@ -95,7 +110,8 @@ class DatabaseContext {
 
     id: number
     name: string
-    BrowserDatabase: TrainerDatabase
+    BrowserDatabase: BrowserMetaSchema
+    BrowserQueries: Array<string>
     SqlJsDatabase: ISqlJsDBWrapper
 
     tables: Array<DatabaseTable>
@@ -276,7 +292,12 @@ export const useDatabasesStore = defineStore('databases', {
         creationProgressStatements: 0.0,
         creationProgressIndeterminate: false,
 
-        BrowserDB: null as DBWrapper|null,
+        BrowserMetaDB: null as DBWrapper|null,
+        BrowserOriginalDefinitionsDB: null as DBWrapper|null,
+        BrowserDefinitionsDB: null as DBWrapper|null,
+        BrowserQueriesDB: null as DBWrapper|null,
+        BrowserQueryResultsDB: null as DBWrapper|null,
+
         contexts: [] as Array<DatabaseContext>,
         activeContextId: -1,
         hasPendingChanges: false,
@@ -302,15 +323,27 @@ export const useDatabasesStore = defineStore('databases', {
         async init() {
             this.isInitializing = true
 
-            // Configure our IndexedDB wrapper if needed
-            if (this.BrowserDB === null) {
-                this.BrowserDB = new DBWrapper()
+            // Configure our IndexedDB wrappers if needed
+            if (this.BrowserMetaDB === null) {
+                this.BrowserMetaDB = new DBWrapper('meta')
+            }
+            if (this.BrowserOriginalDefinitionsDB === null) {
+                this.BrowserOriginalDefinitionsDB = new DBWrapper('original-definitions')
+            }
+            if (this.BrowserDefinitionsDB === null) {
+                this.BrowserDefinitionsDB = new DBWrapper('definitions')
+            }
+            if (this.BrowserQueriesDB === null) {
+                this.BrowserQueriesDB = new DBWrapper('queries')
+            }
+            if (this.BrowserQueryResultsDB === null) {
+                this.BrowserQueryResultsDB = new DBWrapper('query-results')
             }
 
             // Check if we have any databases to populate from our browser
             // storage if SQL.js is properly configured
             if (this.contexts.length === 0) {
-                const databases: Array<TrainerDatabase> = await this.BrowserDB.getAllWithKeys()
+                const databases: Array<BrowserMetaSchema> = await this.BrowserMetaDB.getAllWithKeys()
                 if (databases.length > 0) {
                     // Create and store a working database copy from each of the
                     // persisted database copies
@@ -326,14 +359,27 @@ export const useDatabasesStore = defineStore('databases', {
             this.isInitializing = false
         },
         async clear() {
-            // Nothing to do if we haven't initialized yet
-            if (this.BrowserDB === null) {
-                return
+            // Clear data from our IndexedDB databases
+            if (this.BrowserMetaDB !== null) {
+                this.BrowserMetaDB.deleteDatabase()
+                this.BrowserMetaDB = null
             }
-
-            // Clear data from our IndexedDB database
-            await this.BrowserDB.deleteDatabase()
-            this.BrowserDB = null
+            if (this.BrowserOriginalDefinitionsDB !== null) {
+                this.BrowserOriginalDefinitionsDB.deleteDatabase()
+                this.BrowserOriginalDefinitionsDB = null
+            }
+            if (this.BrowserDefinitionsDB !== null) {
+                this.BrowserDefinitionsDB.deleteDatabase()
+                this.BrowserDefinitionsDB = null
+            }
+            if (this.BrowserQueriesDB !== null) {
+                this.BrowserQueriesDB.deleteDatabase()
+                this.BrowserQueriesDB = null
+            }
+            if (this.BrowserQueryResultsDB !== null) {
+                this.BrowserQueryResultsDB.deleteDatabase()
+                this.BrowserQueryResultsDB = null
+            }
 
             // Clear our context records
             this.contexts = []
@@ -342,16 +388,48 @@ export const useDatabasesStore = defineStore('databases', {
             // Re-initialize
             return this.init()
         },
-        add(database: TrainerDatabase): Promise<DatabaseContext> {
+        /**
+         * Add a new database context based on a record from the browser store.
+         * 
+         * This method handles the necessary retrieval and conversion tasks to
+         * get a fully-populated context from the different the supporting
+         * browser stores based on the primary store's record.
+         * 
+         * @param database The primary browser store meta record to build from.
+         * @returns A new, populated DatabaseContext based on the browser data.
+         */
+        add(database: BrowserMetaSchema): Promise<DatabaseContext> {
             return new Promise(async (resolve, reject) => {
+                // Verify we have the resources we need
+                if (this.BrowserDefinitionsDB === null || this.BrowserQueriesDB === null || this.BrowserQueryResultsDB === null) {
+                    reject('Must call init() before adding a database')
+                    return
+                }
+
+                // Retrieve supporting data for this meta record
+                const definitionRecord: BrowserDefinitionsSchema = await this.BrowserDefinitionsDB.get(database.id as number)
+                const queriesRecord: BrowserQueriesSchema = await this.BrowserQueriesDB.get(database.id as number)
+                const texts: Array<string> = JSON.parse(queriesRecord.texts)
+                const resultsRecord: BrowserQueryResultsSchema = await this.BrowserQueryResultsDB.get(database.id as number)
+                const results: Array<Array<SqlJsTypes.QueryExecResult>> = JSON.parse(resultsRecord.results)
+                const resultHeights: Array<Array<number>> = JSON.parse(resultsRecord.resultHeights)
+                const queryData: Array<DatabaseContextQuery> = texts.map((text: string, i) => {
+                    const q = new DatabaseContextQuery
+                    q.text = text
+                    q.results = results[i]
+                    q.resultHeights = resultHeights[i]
+                    return q
+                })
+
                 // Create a database context for this database
-                const sqlDB = new SqlJsDBWrapper(database.currentDefinition)
+                const sqlDB = new SqlJsDBWrapper(definitionRecord.definition)
                 const context = new DatabaseContext(
                     database.id as number,
                     database.name,
                     database,
+                    texts,
                     sqlDB,
-                    JSON.parse(database.queries)
+                    queryData
                 )
                 await context.loadTables()
 
@@ -362,7 +440,7 @@ export const useDatabasesStore = defineStore('databases', {
         },
         async delete(id: number) {
             // Make sure it's safe to proceed
-            if (this.BrowserDB === null) {
+            if (this.BrowserMetaDB === null) {
                 throw 'Must call init() before deleting a database'
             }
 
@@ -373,7 +451,11 @@ export const useDatabasesStore = defineStore('databases', {
             }
 
             // Delete the browser database
-            await this.BrowserDB.delete(id)
+            await this.BrowserMetaDB.delete(id)
+            await this.BrowserOriginalDefinitionsDB?.delete(id)
+            await this.BrowserDefinitionsDB?.delete(id)
+            await this.BrowserQueriesDB?.delete(id)
+            await this.BrowserQueryResultsDB?.delete(id)
 
             // Close the SQL.js database
             context.SqlJsDatabase.close()
@@ -390,7 +472,7 @@ export const useDatabasesStore = defineStore('databases', {
         },
         async create(name: string, originalDefinitionScripts: Array<string> = []): Promise<DatabaseContext> {
             // Make sure it's safe to proceed
-            if (this.BrowserDB === null) {
+            if (this.BrowserMetaDB === null || this.BrowserOriginalDefinitionsDB === null || this.BrowserDefinitionsDB === null || this.BrowserQueriesDB === null || this.BrowserQueryResultsDB === null) {
                 throw 'Must call init() before creating a database'
             }
 
@@ -410,21 +492,36 @@ export const useDatabasesStore = defineStore('databases', {
             this.creationProgressIndeterminate = true
             const def = await newDB.exportToJSON()
             this.creationProgressIndeterminate = false
-            const browserDB: TrainerDatabase = {
+            const meta: BrowserMetaSchema = {
                 name,
-                originalDefinition: def,
-                currentDefinition: def,
-                queries: JSON.stringify([])
+                definitionHash: await HashWrapper.getHashString(def),
+                queryResultsHash: await HashWrapper.getHashString(JSON.stringify([]))
             }
-            browserDB.id = (await this.BrowserDB.add(browserDB)) as number
+            meta.id = (await this.BrowserMetaDB.add(meta)) as number
+
+            // Populate required supporting elements for the browser database
+            await this.BrowserOriginalDefinitionsDB.add({
+                definition: def
+            }, meta.id)
+            await this.BrowserDefinitionsDB.add({
+                definition: def
+            }, meta.id)
+            await this.BrowserQueriesDB.add({
+                texts: JSON.stringify([])
+            }, meta.id)
+            await this.BrowserQueryResultsDB.add({
+                results: JSON.stringify([]),
+                resultHeights: JSON.stringify([])
+            }, meta.id)
 
             // Create a database context for the new database
             const context = new DatabaseContext(
-                browserDB.id,
+                meta.id,
                 name,
-                browserDB,
+                meta,
+                [],
                 newDB,
-                JSON.parse(browserDB.queries)
+                []
             )
             await context.loadTables()
 
@@ -432,7 +529,7 @@ export const useDatabasesStore = defineStore('databases', {
             // it's the only one
             this.contexts.push(context)
             if (this.contexts.length === 1) {
-                this.activeContextId = browserDB.id
+                this.activeContextId = meta.id
             }
 
             // Reset our progress indicators
@@ -494,6 +591,9 @@ export const useDatabasesStore = defineStore('databases', {
             this.activeQuery.progress = 0
         },
         async restoreOriginalToBrowser(id: number) {
+            if (this.BrowserOriginalDefinitionsDB === null) {
+                throw 'Must call init() before restoring a database'
+            }
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
@@ -507,7 +607,8 @@ export const useDatabasesStore = defineStore('databases', {
             context.SqlJsDatabase.close()
 
             // Replace the SQL.js database with its original
-            context.SqlJsDatabase = new SqlJsDBWrapper(context.BrowserDatabase.originalDefinition)
+            const definitionRecord: BrowserDefinitionsSchema = await this.BrowserOriginalDefinitionsDB.get(context.BrowserDatabase.id as number)
+            context.SqlJsDatabase = new SqlJsDBWrapper(definitionRecord.definition)
 
             // Store our "updated" definition as the new current
             await this.saveChangesToBrowser(id, 'definition')
@@ -516,7 +617,7 @@ export const useDatabasesStore = defineStore('databases', {
             // Unlock the UI
             this.isInitializing = false
         },
-        async saveChangesToBrowser(id: number, type?: 'definition'|'query'): Promise<boolean> {
+        async saveChangesToBrowser(id: number, type?: 'definition'|'query'|'query-results'): Promise<boolean> {
             // If we're in the middle of *actually* saving pending changes,
             // ignore this call
             if (this.isSavingContext === true) {
@@ -546,56 +647,70 @@ export const useDatabasesStore = defineStore('databases', {
                 // Schedule a potential save action
                 context.saveTimeoutID = window.setTimeout(async () => {
                     // Make sure it's safe to proceed
-                    if (this.BrowserDB === null) {
+                    if (this.BrowserMetaDB === null || this.BrowserDefinitionsDB === null || this.BrowserQueriesDB === null || this.BrowserQueryResultsDB === null) {
                         reject('Must call init() before saving changes to browser')
                         return
                     }
 
                     this.isSavingContext = true
-
-                    // Store our intended changes so we don't try to make two
-                    // separate update calls
-                    const changes = {} as {
-                        currentDefinition?: string
-                        queries?: string
-                    }
+                    const databaseID = context.BrowserDatabase.id as number
+                    let madeChanges = false
 
                     // Changes in data or structure
                     if (type === undefined || type === 'definition') {
                         // Get the current definition and the old definition
-                        const newDef = await context.SqlJsDatabase.exportToJSON()
-                        const oldDef = context.BrowserDatabase.currentDefinition
+                        const newHash = await context.SqlJsDatabase.exportToHash()
+                        const oldHash = context.BrowserDatabase.definitionHash
 
                         // If there have been changes, update the stored definition
                         // and our current table list
-                        if (newDef !== oldDef) {
-                            context.BrowserDatabase.currentDefinition = newDef
+                        if (newHash !== oldHash) {
+                            context.BrowserDatabase.definitionHash = newHash
                             context.tables = await context.getTables()
-                            changes.currentDefinition = newDef
+                            await this.BrowserDefinitionsDB.update(databaseID, {
+                                definition: await context.SqlJsDatabase.exportToJSON()
+                            })
+                            madeChanges = true
                         }
                     }
 
                     // Changes to queries
                     if (type === undefined || type === 'query') {
                         // Get the current query list and the old query list
-                        const newQueries = JSON.stringify(context.Queries.map((q) => ({...q, progress: 0, isRunning: false})))
-                        const oldQueries = context.BrowserDatabase.queries
+                        const newQueries = context.Queries.map((q) => q.text)
+                        const newQueriesJSON = JSON.stringify(newQueries)
+                        const oldQueries = JSON.stringify(context.BrowserQueries)
 
                         // If there have been changes, update the stored definition
-                        if (newQueries !== oldQueries) {
-                            context.BrowserDatabase.queries = newQueries
-                            changes.queries = newQueries
+                        if (newQueriesJSON !== oldQueries) {
+                            context.BrowserQueries = newQueries
+                            await this.BrowserQueriesDB.update(databaseID, {
+                                texts: newQueriesJSON
+                            })
+                            madeChanges = true
                         }
                     }
 
-                    // Persist our changes in the browser database
-                    if (changes.currentDefinition || changes.queries) {
-                        await this.BrowserDB.update(context.id, changes)
-                        resolve(true)
-                    } else {
-                        resolve(false)
+                    // Changes to query results
+                    if (type === undefined || type === 'query-results') {
+                        // Get the current results and the old results
+                        const newResults = context.Queries.map((q) => ({ results: q.results, resultHeights: q.resultHeights }))
+                        const newHash = await HashWrapper.getHashString(JSON.stringify(newResults))
+                        const oldHash = context.BrowserDatabase.queryResultsHash
+
+                        // If there have been changes, update the stored values
+                        if (newHash !== oldHash) {
+                            context.BrowserDatabase.queryResultsHash = newHash
+                            await this.BrowserQueryResultsDB.update(databaseID, {
+                                results: JSON.stringify(newResults.map((r) => r.results)),
+                                resultHeights: JSON.stringify(newResults.map((r) => r.resultHeights))
+                            })
+                            madeChanges = true
+                        }
                     }
 
+                    // Finalize our actions
+                    resolve(madeChanges)
                     this.hasPendingChanges = false
 
                     // Clear the timeout value

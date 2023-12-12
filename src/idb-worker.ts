@@ -12,6 +12,7 @@ type MessageType =
 
 // Defines the expected contents of incoming messages
 interface MessageData {
+    database: string
     type: MessageType
 }
 
@@ -38,7 +39,7 @@ interface MessageDataDelete extends MessageData {
 
 onmessage = function (ev) {
     const data: MessageData = ev.data
-    const idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
+    const idb = new IDBWrapper('sql-trainer', data.database)
 
     // Generic handler to use for all our message success responses
     const handler = (res: any) => {

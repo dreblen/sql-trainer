@@ -1,3 +1,4 @@
+import * as HashWrapper from '@/hash-wrapper'
 import SqlJsDBWorker from '@/sqljs-db-worker?worker'
 import { SqlJsWrapper } from './sqljs-wrapper'
 import type * as SqlJsTypes from 'sql.js'
@@ -11,6 +12,7 @@ type ByteDefinition = ArrayLike<number>|Buffer
  */
 export interface ISqlJsDBWrapper {
     exportToJSON (): Promise<string>
+    exportToHash (): Promise<string>
     exec (sql: string): Promise<Array<SqlJsTypes.QueryExecResult>>
     close (): Promise<void>
     runStatements (sql: string, onprogress?: (value: number, result?: SqlJsTypes.QueryExecResult) => void): Promise<Array<SqlJsTypes.QueryExecResult>>
@@ -227,6 +229,24 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
                     reject(e)
                 }
             })
+        }
+    }
+
+    /**
+     * Get hash string representation of current database definition.
+     * 
+     * @returns Hash string of the current database definition.
+     */
+    public async exportToHash (): Promise<string> {
+        if (this.isWorker) {
+            return new Promise(async (resolve, reject) => {
+                const worker = await this.getWorker(resolve, reject)
+                worker.postMessage({
+                    type: 'exportToHash'
+                })
+            })
+        } else {
+            return HashWrapper.getHashString(await this.exportToJSON())
         }
     }
 

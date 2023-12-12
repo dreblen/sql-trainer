@@ -1,3 +1,13 @@
+// List of all potential store names to make sure we accommodate them without
+// having to manage database versions
+const allStoreNames = [
+    'meta',
+    'original-definitions',
+    'definitions',
+    'queries',
+    'query-results'
+]
+
 /**
  * Simple Promise-based wrapper around IndexedDB API.
  * 
@@ -59,10 +69,12 @@ export class IDBWrapper {
             req.onupgradeneeded = (ev: any) => {
                 const db: IDBDatabase = ev.target.result
 
-                if (!db.objectStoreNames.contains(this.storeName)) {
-                    db.createObjectStore(this.storeName, {
-                        autoIncrement: true
-                    })
+                for (const name of allStoreNames) {
+                    if (!db.objectStoreNames.contains(name)) {
+                        db.createObjectStore(name, {
+                            autoIncrement: true
+                        })
+                    }
                 }
             }
 

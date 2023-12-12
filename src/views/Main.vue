@@ -685,7 +685,7 @@ export default {
             }
         },
         onResultHeightSliderEnd: function () {
-            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query-results')
         },
         mapResultValues: function (values: SqlValue[][]) {
             return values.map((row, i) => {

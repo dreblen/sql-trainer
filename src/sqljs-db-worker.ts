@@ -1,3 +1,4 @@
+import * as HashWrapper from '@/hash-wrapper'
 import { SqlJsWrapper } from './sqljs-wrapper';
 import type * as SqlJsTypes from 'sql.js'
 
@@ -5,6 +6,7 @@ import type * as SqlJsTypes from 'sql.js'
 type MessageType =
     'init'
     |'exportToJSON'
+    |'exportToHash'
     |'exec'
     |'close'
     |'runStatements'
@@ -47,6 +49,11 @@ onmessage = async function (m) {
         case 'exportToJSON': {
             const asArray = Array.from(db.export())
             this.postMessage(JSON.stringify(asArray))
+            break
+        }
+        case 'exportToHash': {
+            const asArray = Array.from(db.export())
+            this.postMessage(await HashWrapper.getHashString(JSON.stringify(asArray)))
             break
         }
         case 'exec': {

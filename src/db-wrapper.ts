@@ -10,13 +10,15 @@ import { IDBWrapper } from '@/idb-wrapper'
  * app should use.
  */
 export class DBWrapper {
-    constructor() {
+    constructor(name: string) {
         if (typeof(Worker) !== 'undefined') {
             this.isWorker = true
         } else {
             this.isWorker = false
         }
         this.idb = null
+
+        this.name = name
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -25,6 +27,8 @@ export class DBWrapper {
 
     private isWorker: boolean
     private idb: IDBWrapper|null
+
+    private name: string
 
     ////////////////////////////////////////////////////////////////////////////
     // Methods
@@ -65,7 +69,7 @@ export class DBWrapper {
      */
     private getIDBWrapper (): IDBWrapper {
         if (this.idb === null) {
-            this.idb = new IDBWrapper('sql-trainer', 'trainerDatabases')
+            this.idb = new IDBWrapper('sql-trainer', this.name)
         }
         return this.idb
     }
@@ -80,6 +84,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'deleteDatabase',
                 })
             })
@@ -100,6 +105,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'add',
                     value,
                     key
@@ -121,6 +127,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'get',
                     query
                 })
@@ -142,6 +149,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'getAllWithKeys',
                     keyPropName
                 })
@@ -163,6 +171,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'update',
                     key,
                     values
@@ -184,6 +193,7 @@ export class DBWrapper {
             return new Promise((resolve, reject) => {
                 const worker = this.getWorker(resolve, reject)
                 worker.postMessage({
+                    database: this.name,
                     type: 'delete',
                     key,
                 })
