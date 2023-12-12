@@ -66,15 +66,6 @@
                                                 Remove Completely
                                             </v-btn>
                                         </v-col>
-                                        <v-col>
-                                            <v-btn
-                                                block
-                                                prepend-icon="mdi-table"
-                                                @click="showTableSummaryDrawer = true"
-                                            >
-                                                Table Summary
-                                            </v-btn>
-                                        </v-col>
                                     </v-row>
                                 </v-container>
                             </template>
@@ -83,41 +74,51 @@
                 </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null && !databasesStore.isInitializing">
                     <v-row>
-                        <v-col
-                            cols="9"
-                            sm="10"
-                            md="11"
-                        >
-                            <v-tabs
-                                v-model="activeTabIndex"
-                                color="primary"
-                                center-active
-                                show-arrows
-                            >
-                                <v-tab
-                                    v-for="(query,i) in databasesStore.activeContext.Queries"
-                                    :key="i"
+                        <v-col>
+                            <v-input hide-details>
+                                <template v-slot:prepend>
+                                    <v-checkbox
+                                        v-model="showTableSummaryDrawer"
+                                        hide-details
+                                        color="primary"
+                                    >
+                                        <template v-slot:input>
+                                            <v-icon
+                                                class="pa-5"
+                                                @click="showTableSummaryDrawer = !showTableSummaryDrawer"
+                                            >
+                                                mdi-table
+                                            </v-icon>
+                                        </template>
+                                    </v-checkbox>
+                                </template>
+                                <v-tabs
+                                    v-model="activeTabIndex"
+                                    color="primary"
+                                    center-active
+                                    show-arrows
                                 >
-                                    Query {{ i + 1 }}
+                                    <v-tab
+                                        v-for="(query,i) in databasesStore.activeContext.Queries"
+                                        :key="i"
+                                    >
+                                        Query {{ i + 1 }}
+                                        <v-btn
+                                            icon="mdi-close"
+                                            size="x-small"
+                                            variant="plain"
+                                            @click.stop="databasesStore.activeContext.removeQuery(i)"
+                                        />
+                                    </v-tab>
+                                </v-tabs>
+                                <template v-slot:append>
                                     <v-btn
-                                        icon="mdi-close"
-                                        size="x-small"
-                                        variant="plain"
-                                        @click.stop="databasesStore.activeContext.removeQuery(i)"
+                                        style="float: right;"
+                                        icon="mdi-plus"
+                                        @click="databasesStore.activeContext.addQuery()"
                                     />
-                                </v-tab>
-                            </v-tabs>
-                        </v-col>
-                        <v-col
-                            cols="3"
-                            sm="2"
-                            md="1"
-                        >
-                            <v-btn
-                                style="float: right;"
-                                icon="mdi-plus"
-                                @click="databasesStore.activeContext.addQuery()"
-                            />
+                                </template>
+                            </v-input>
                         </v-col>
                     </v-row>
                     <v-row class="my-0">
