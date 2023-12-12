@@ -13,7 +13,6 @@
                             label="Database"
                             :loading="databasesStore.isInitializing"
                             :disabled="databasesStore.isInitializing"
-                            :hide-details="!showDatabaseControls || databasesStore.activeContext === null"
                         >
                             <template v-slot:prepend v-if="databasesStore.activeContext !== null">
                                 <v-checkbox
@@ -45,31 +44,29 @@
                                     size="22"
                                 />
                             </template>
-                            <template v-slot:details>
-                                <v-container>
-                                    <v-row>
-                                        <v-col>
-                                            <v-btn
-                                                block
-                                                prepend-icon="mdi-undo"
-                                                @click="databasesStore.restoreOriginalToBrowser(databasesStore.activeContextId)"
-                                            >
-                                                Restore to Original
-                                            </v-btn>
-                                        </v-col>
-                                        <v-col>
-                                            <v-btn
-                                                block
-                                                prepend-icon="mdi-delete"
-                                                @click="databasesStore.delete(databasesStore.activeContextId)"
-                                            >
-                                                Remove Completely
-                                            </v-btn>
-                                        </v-col>
-                                    </v-row>
-                                </v-container>
-                            </template>
                         </v-select>
+                    </v-col>
+                </v-row>
+                <v-row v-if="showDatabaseControls && databasesStore.activeContext !== null">
+                    <v-col>
+                        <v-btn
+                            block
+                            color="warning"
+                            prepend-icon="mdi-undo"
+                            @click="databasesStore.restoreOriginalToBrowser(databasesStore.activeContextId)"
+                        >
+                            Restore to Original
+                        </v-btn>
+                    </v-col>
+                    <v-col>
+                        <v-btn
+                            block
+                            color="error"
+                            prepend-icon="mdi-delete"
+                            @click="databasesStore.delete(databasesStore.activeContextId)"
+                        >
+                            Remove Completely
+                        </v-btn>
                     </v-col>
                 </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null && !databasesStore.isInitializing">
