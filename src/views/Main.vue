@@ -525,10 +525,14 @@ export default {
             }
         },
         activeDatabaseQueryText: function () {
-            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+            if (this.databasesStore.activeContextId !== -1) {
+                this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+            }
         },
         activeDatabaseNumQueries: function () {
-            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+            if (this.databasesStore.activeContextId !== -1) {
+                this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query')
+            }
         },
         numDatabaseContexts: function (newNum: number) {
             if (newNum === 0) {
@@ -685,7 +689,9 @@ export default {
             }
         },
         onResultHeightSliderEnd: function () {
-            this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query-results')
+            if (this.databasesStore.activeContextId !== -1) {
+                this.databasesStore.saveChangesToBrowser(this.databasesStore.activeContextId, 'query-results')
+            }
         },
         mapResultValues: function (values: SqlValue[][]) {
             return values.map((row, i) => {
