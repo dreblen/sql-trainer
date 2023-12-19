@@ -639,7 +639,7 @@ export default {
                 this.addDatabaseDialogName = ''
                 this.showAddDatabaseDialog = false
             } catch (err) {
-                this.addDatabaseDialogScriptError = (err as Error).message
+                this.addDatabaseDialogScriptError = (err as {err: Error}).err.message
                 this.databasesStore.creationProgressScripts = 0
                 this.databasesStore.creationProgressStatements = 0
             } finally {
