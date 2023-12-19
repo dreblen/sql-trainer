@@ -301,7 +301,8 @@ export const useDatabasesStore = defineStore('databases', {
         contexts: [] as Array<DatabaseContext>,
         activeContextId: -1,
         hasPendingChanges: false,
-        isSavingContext: false
+        isSavingContext: false,
+        isAutocompletionEnabled: false
     }),
     getters: {
         activeContext(state): DatabaseContext|null {

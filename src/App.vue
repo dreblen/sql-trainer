@@ -53,6 +53,17 @@
             </v-row>
             <v-row>
               <v-col>
+                <h2>Editor Controls</h2>
+                <p><v-checkbox
+                  v-model="databasesStore.isAutocompletionEnabled"
+                  label="Enable autocompletion?"
+                  hint="This may cause performance issues, so it is disabled by default."
+                  persistent-hint
+                /></p>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
                 <h2>Source Code</h2>
                 <v-btn
                   block

@@ -48,6 +48,18 @@
                     </v-col>
                 </v-row>
                 <v-row v-if="!databasesStore.isInitializing && showDatabaseControls && databasesStore.activeContext !== null">
+                    <v-col v-if="isAutocompletionEnabled">
+                        <v-btn
+                            block
+                            color="info"
+                            prepend-icon="mdi-refresh"
+                            @click="reloadCodemirror"
+                            :disabled="isCodemirrorReloading"
+                            :loading="isCodemirrorReloading"
+                        >
+                            Refresh Autocompletion
+                        </v-btn>
+                    </v-col>
                     <v-col>
                         <v-btn
                             block
@@ -132,7 +144,11 @@
                             </v-slider>
                         </v-col>
                     </v-row>
-                    <v-row class="my-0" :style="`height: ${editorHeight}vh;`">
+                    <v-row
+                        v-if="!isCodemirrorReloading"
+                        class="my-0"
+                        :style="`height: ${editorHeight}vh;`"
+                    >
                         <v-col style="height: 100%;">
                             <v-card style="height: 100%;">
                                 <codemirror
@@ -140,6 +156,7 @@
                                     placeholder="Type Your Query Text Here..."
                                     style="height: 100%;"
                                     @keyup="editorKeyUp"
+                                    :extensions="codemirrorExtensions"
                                 />
                             </v-card>
                         </v-col>
@@ -437,9 +454,12 @@
 import { mapStores } from 'pinia'
 import { useDatabasesStore } from '@/store/databases'
 
-import { Codemirror } from 'vue-codemirror'
 import JSZip from 'jszip'
 import { SqlValue } from 'sql.js'
+
+import { Extension } from '@codemirror/state'
+import { autocompletion } from '@codemirror/autocomplete'
+import { schemaCompletionSource } from '@codemirror/lang-sql'
 
 export default {
     data() {
@@ -463,6 +483,9 @@ export default {
             tableSummaryDrawerWidth: 256,
             tableSummaryFilterText: '',
 
+            autocompletionIsEnabled: false,
+            isCodemirrorReloading: false,
+            codemirrorExtensions: [] as Array<Extension>,
             editorHeight: 40,
             activeTabIndex: 0
         }
@@ -483,6 +506,9 @@ export default {
                 })
             }
             return databases
+        },
+        activeContextId: function () {
+            return this.databasesStore.activeContextId
         },
         addDatabaseDialogAddButtonEnabled: function () {
             return (this.addDatabaseDialogFileLoading === false)
@@ -510,9 +536,15 @@ export default {
                     (table) => table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
                 )
             }
+        },
+        isAutocompletionEnabled: function () {
+            return this.databasesStore.isAutocompletionEnabled
         }
     },
     watch: {
+        activeContextId: function () {
+            this.reloadCodemirror()
+        },
         activeDatabaseQueryIndex: function (newIndex: number) {
             // Nothing to do if this was a change to something unusable
             if (newIndex === undefined) {
@@ -619,9 +651,47 @@ export default {
 
             // Stop our loading indicator
             this.addDatabaseDialogFileLoading = false
+        },
+        isAutocompletionEnabled: function () {
+            this.reloadCodemirror()
         }
     },
     methods: {
+        reloadCodemirror: function () {
+            if (!this.databasesStore.activeContext) {
+                return
+            }
+
+            // Wrap any actions in reloading indicators to make sure the
+            // CodeMirror component updates correctly
+            this.isCodemirrorReloading = true
+
+            // Disable autocompletion if appropriate, or update the completion
+            // schema based on the current table list
+            if (!this.databasesStore.isAutocompletionEnabled) {
+                this.codemirrorExtensions = []
+            } else {
+                const tables = this.databasesStore.activeContext.tables
+                const schema: { [key: string]: Array<string> } = {}
+                for (const t of tables) {
+                    schema[t.name] = t.columns.map((c) => c.name)
+                }
+                this.codemirrorExtensions = [
+                    autocompletion({
+                        override: [
+                            schemaCompletionSource({
+                                schema
+                            })
+                        ]
+                    })
+                ]
+            }
+
+            // Finish the component update
+            this.$nextTick(() => {
+                this.isCodemirrorReloading = false
+            })
+        },
         addDatabaseFromDialog: async function () {
             this.addDatabaseDialogIsSaving = true
 
@@ -709,9 +779,6 @@ export default {
         if (this.databasesStore.contexts.length === 0) {
             this.showAddDatabaseDialog = true
         }
-    },
-    components: {
-        Codemirror
     }
 }
 </script>
