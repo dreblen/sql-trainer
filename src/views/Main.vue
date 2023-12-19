@@ -149,7 +149,10 @@
                         class="my-0"
                         :style="`height: ${editorHeight}vh;`"
                     >
-                        <v-col style="height: 100%;">
+                        <v-col
+                            class="py-0"
+                            style="height: 100%;"
+                        >
                             <v-card style="height: 100%;">
                                 <codemirror
                                     v-model="databasesStore.activeQuery.text"
@@ -159,6 +162,15 @@
                                     :extensions="codemirrorExtensions"
                                 />
                             </v-card>
+                        </v-col>
+                    </v-row>
+                    <v-row class="my-0">
+                        <v-col class="py-0">
+                            <p class="text-caption">
+                                Note: You can break focus from the editor by
+                                pressing the <kbd>Escape</kbd> key before
+                                pressing the <kbd>Tab</kbd> key.
+                            </p>
                         </v-col>
                     </v-row>
                     <v-row>
@@ -458,7 +470,8 @@ import JSZip from 'jszip'
 import { SqlValue } from 'sql.js'
 
 import { Extension } from '@codemirror/state'
-import { autocompletion } from '@codemirror/autocomplete'
+import { keymap } from '@codemirror/view'
+import { autocompletion, acceptCompletion } from '@codemirror/autocomplete'
 import { schemaCompletionSource } from '@codemirror/lang-sql'
 
 export default {
@@ -671,19 +684,31 @@ export default {
             if (!this.databasesStore.isAutocompletionEnabled) {
                 this.codemirrorExtensions = []
             } else {
+                // Build a table-name/column-name-list schema mapping
                 const tables = this.databasesStore.activeContext.tables
                 const schema: { [key: string]: Array<string> } = {}
                 for (const t of tables) {
                     schema[t.name] = t.columns.map((c) => c.name)
                 }
+
+                // Map the tab key to autocompletion, but see notes here, which
+                // is why we have help text below the editor:
+                // https://codemirror.net/examples/tab/
+                const customKeymap = keymap.of([
+                    { key: 'Tab', run: acceptCompletion }
+                ])
+
+                // Finalize our additional extensions
                 this.codemirrorExtensions = [
                     autocompletion({
+                        activateOnTyping: false,
                         override: [
                             schemaCompletionSource({
                                 schema
                             })
                         ]
-                    })
+                    }),
+                    customKeymap
                 ]
             }
 
