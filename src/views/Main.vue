@@ -278,7 +278,7 @@
                                                     </v-chip>
                                                 </span>
                                                 <span v-else style="white-space: nowrap;">
-                                                    {{ item.columns[i.toString()] }}
+                                                    <pre>{{ item.columns[i.toString()] }}</pre>
                                                 </span>
                                             </template>
                                         </v-data-table-virtual>
