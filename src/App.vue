@@ -5,7 +5,9 @@
     </v-main>
     <v-footer color="secondary">
       <v-row justify="center">
-        <v-col class="text-center" cols="12">Copyright © 2023 Tanner Jotblad</v-col>
+        <v-col class="text-center" cols="12">
+          Copyright © 2023-{{ (new Date).getFullYear() }} Tanner Jotblad
+        </v-col>
         <v-col cols="6" sm="4" md="2">
           <v-btn
             @click="showDetailsDialog = true"
