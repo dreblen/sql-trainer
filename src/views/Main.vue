@@ -80,6 +80,19 @@
                             Remove Completely
                         </v-btn>
                     </v-col>
+                    <v-col cols="12">
+                        <v-slider
+                            v-model="databasesStore.fontSizeOverride"
+                            density="compact"
+                            hide-details
+                            color="secondary"
+                            prepend-icon="mdi-format-size"
+                            min="8"
+                            max="72"
+                            step="1"
+                            thumb-label
+                        />
+                    </v-col>
                 </v-row>
                 <template v-if="databasesStore.activeContext !== null && databasesStore.activeQuery !== null && !databasesStore.isInitializing">
                     <v-row>
@@ -157,7 +170,7 @@
                                 <codemirror
                                     v-model="databasesStore.activeQuery.text"
                                     placeholder="Type Your Query Text Here..."
-                                    style="height: 100%;"
+                                    :style="{height: '100%', fontSize: `${databasesStore.fontSizeOverride}pt`}"
                                     @keyup="editorKeyUp"
                                     :extensions="codemirrorExtensions"
                                 />
@@ -249,7 +262,7 @@
                                                             @end="onResultHeightSliderEnd"
                                                         >
                                                             <template v-slot:thumb-label="{ modelValue }">
-                                                                {{ Math.max(0, Math.ceil((modelValue - 50) / 36)) }}&nbsp;rows
+                                                                {{ Math.max(0, Math.ceil((modelValue - 50) / Math.max(36, databasesStore.fontSizeOverride * 2))) }}&nbsp;rows
                                                             </template>
                                                             <template v-slot:append>
                                                                 {{ resultset.values.length }}
@@ -266,6 +279,7 @@
                                             :height="databasesStore.activeQuery.resultHeights[setNum]"
                                             density="compact"
                                             hide-no-data
+                                            :style="{fontSize: `${databasesStore.fontSizeOverride}pt`}"
                                         >
                                             <template
                                                 v-for="(col, i) in ['#',...resultset.columns]"

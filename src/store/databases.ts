@@ -302,6 +302,7 @@ export const useDatabasesStore = defineStore('databases', {
         activeContextId: -1,
         hasPendingChanges: false,
         isSavingContext: false,
+        fontSizeOverride: 12,
         isAutocompletionEnabled: false
     }),
     getters: {
