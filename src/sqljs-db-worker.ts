@@ -88,9 +88,9 @@ onmessage = async function (m) {
 
             const statements = await db.iterateStatements(d.sql)
             const results: Array<SqlJsTypes.QueryExecResult> = []
-            let totalBytes = statements.getRemainingSQL().length
+            const totalBytes = statements.getRemainingSQL().length
             let bytesProcessed = 0
-            while (true) {
+            for (;;) {
                 try {
                     const it = statements.next()
                     if (it.done) {

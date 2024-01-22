@@ -328,7 +328,7 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
             const db = await this.getSqlJsDB()
             const statements = await db.iterateStatements(sql)
             const results: Array<SqlJsTypes.QueryExecResult> = []
-            let totalBytes = statements.getRemainingSQL().length
+            const totalBytes = statements.getRemainingSQL().length
             let bytesProcessed = 0
 
             return new Promise((resolve, reject) => {
