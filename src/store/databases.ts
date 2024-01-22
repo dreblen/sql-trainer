@@ -190,7 +190,7 @@ class DatabaseContext {
                 type: row[2],
                 allowNull: (row[3] == '0') ? true : false,
                 default: row[4],
-                isPK: (row[5] == '1') ? true : false,
+                isPK: (row[5] != '0') ? true : false,
                 fk: fk.find((k) => k.localName === row[1])?.foreignName || null
             } as DatabaseTableColumn))
         } catch (rejection) {
