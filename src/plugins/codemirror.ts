@@ -1,4 +1,8 @@
 import {
+    history
+} from '@codemirror/commands'
+
+import {
     lineNumbers,
     highlightActiveLine,
     scrollPastEnd
@@ -12,6 +16,7 @@ import {
 import { SQLite, sql } from '@codemirror/lang-sql'
 
 export default [
+    history(),
     lineNumbers(),
     highlightActiveLine(),
     scrollPastEnd(),
