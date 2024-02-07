@@ -74,6 +74,7 @@ class DatabaseContextQuery {
     }
 
     text: string
+    selection?: string
     results: Array<SqlJsTypes.QueryExecResult>
     resultHeights: Array<number>
     error: string
@@ -552,9 +553,15 @@ export const useDatabasesStore = defineStore('databases', {
             activeQuery.resultHeights = []
             activeQuery.error = ''
 
+            // Determine which query text to run
+            let queryText = activeQuery.text
+            if (activeQuery.selection) {
+                queryText = activeQuery.selection
+            }
+
             // Execute our current query statements and store the results
             activeQuery.isRunning = true
-            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(activeQuery.text, (value, result) => {
+            activeQuery.results = await this.activeContext.SqlJsDatabase.runStatements(queryText, (value, result) => {
                 activeQuery.progress = value
                 if (result) {
                     activeQuery.results.push(result)

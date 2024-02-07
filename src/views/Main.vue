@@ -172,6 +172,7 @@
                                     placeholder="Type Your Query Text Here..."
                                     :style="{height: '100%', fontSize: `${databasesStore.fontSizeOverride}pt`}"
                                     @keyup="editorKeyUp"
+                                    @update="editorUpdate"
                                     :extensions="codemirrorExtensions"
                                 />
                             </v-card>
@@ -195,7 +196,7 @@
                                 id="btnRunQuery"
                                 :loading="databasesStore.activeQuery.isRunning"
                             >
-                                Run Query (<kbd>F9</kbd>)
+                                Run {{ databasesStore.activeQuery.selection ? 'Selection' : 'Query' }} (<kbd>F9</kbd>)
                                 <template v-slot:loader>
                                     <v-progress-linear
                                         v-model="databasesStore.activeQuery.progress"
@@ -484,7 +485,7 @@ import JSZip from 'jszip'
 import { SqlValue } from 'sql.js'
 
 import { Extension } from '@codemirror/state'
-import { keymap } from '@codemirror/view'
+import { keymap, ViewUpdate } from '@codemirror/view'
 import { autocompletion, acceptCompletion } from '@codemirror/autocomplete'
 import { schemaCompletionSource } from '@codemirror/lang-sql'
 
@@ -795,6 +796,22 @@ export default {
                     key: 'Enter'
                 })
                 btnRunQuery.dispatchEvent(enterup)
+            }
+        },
+        editorUpdate: function (ev: ViewUpdate) {
+            // We can't do anything useful without a valid selection range or an
+            // active query
+            if (ev.state.selection.ranges.length < 1 || !this.databasesStore.activeQuery) {
+                return
+            }
+
+            // If we have only a cursor and no selection, reset our selection
+            // text so it won't be used
+            const range = ev.state.selection.ranges[0]
+            if (range.to === range.from) {
+                this.databasesStore.activeQuery.selection = undefined
+            } else {
+                this.databasesStore.activeQuery.selection = this.databasesStore.activeQuery.text.substring(range.from, range.to)
             }
         },
         onResultHeightSliderEnd: function () {
