@@ -672,6 +672,9 @@ export const useDatabasesStore = defineStore('databases', {
                         // and our current table list
                         if (newHash !== oldHash) {
                             context.BrowserDatabase.definitionHash = newHash
+                            await this.BrowserMetaDB.update(databaseID, {
+                                definitionHash: newHash
+                            })
                             context.tables = await context.getTables()
                             await this.BrowserDefinitionsDB.update(databaseID, {
                                 definition: await context.SqlJsDatabase.exportToJSON()
@@ -707,6 +710,9 @@ export const useDatabasesStore = defineStore('databases', {
                         // If there have been changes, update the stored values
                         if (newHash !== oldHash) {
                             context.BrowserDatabase.queryResultsHash = newHash
+                            await this.BrowserMetaDB.update(databaseID, {
+                                queryResultsHash: newHash
+                            })
                             await this.BrowserQueryResultsDB.update(databaseID, {
                                 results: JSON.stringify(newResults.map((r) => r.results)),
                                 resultHeights: JSON.stringify(newResults.map((r) => r.resultHeights))
