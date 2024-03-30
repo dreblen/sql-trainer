@@ -401,45 +401,42 @@ export const useDatabasesStore = defineStore('databases', {
          * @param database The primary browser store meta record to build from.
          * @returns A new, populated DatabaseContext based on the browser data.
          */
-        add(database: BrowserMetaSchema): Promise<DatabaseContext> {
-            return new Promise(async (resolve, reject) => {
-                // Verify we have the resources we need
-                if (this.BrowserDefinitionsDB === null || this.BrowserQueriesDB === null || this.BrowserQueryResultsDB === null) {
-                    reject('Must call init() before adding a database')
-                    return
-                }
+        async add(database: BrowserMetaSchema): Promise<DatabaseContext> {
+            // Verify we have the resources we need
+            if (this.BrowserDefinitionsDB === null || this.BrowserQueriesDB === null || this.BrowserQueryResultsDB === null) {
+                return Promise.reject('Must call init() before adding a database')
+            }
 
-                // Retrieve supporting data for this meta record
-                const definitionRecord: BrowserDefinitionsSchema = await this.BrowserDefinitionsDB.get(database.id as number)
-                const queriesRecord: BrowserQueriesSchema = await this.BrowserQueriesDB.get(database.id as number)
-                const texts: Array<string> = JSON.parse(queriesRecord.texts)
-                const resultsRecord: BrowserQueryResultsSchema = await this.BrowserQueryResultsDB.get(database.id as number)
-                const results: Array<Array<SqlJsTypes.QueryExecResult>> = JSON.parse(resultsRecord.results)
-                const resultHeights: Array<Array<number>> = JSON.parse(resultsRecord.resultHeights)
-                const queryData: Array<DatabaseContextQuery> = texts.map((text: string, i) => {
-                    const q = new DatabaseContextQuery
-                    q.text = text
-                    q.results = results[i]
-                    q.resultHeights = resultHeights[i]
-                    return q
-                })
-
-                // Create a database context for this database
-                const sqlDB = new SqlJsDBWrapper(definitionRecord.definition)
-                const context = new DatabaseContext(
-                    database.id as number,
-                    database.name,
-                    database,
-                    texts,
-                    sqlDB,
-                    queryData
-                )
-                await context.loadTables()
-
-                // Add and return the context
-                this.contexts.push(context)
-                resolve(context)
+            // Retrieve supporting data for this meta record
+            const definitionRecord: BrowserDefinitionsSchema = await this.BrowserDefinitionsDB.get(database.id as number)
+            const queriesRecord: BrowserQueriesSchema = await this.BrowserQueriesDB.get(database.id as number)
+            const texts: Array<string> = JSON.parse(queriesRecord.texts)
+            const resultsRecord: BrowserQueryResultsSchema = await this.BrowserQueryResultsDB.get(database.id as number)
+            const results: Array<Array<SqlJsTypes.QueryExecResult>> = JSON.parse(resultsRecord.results)
+            const resultHeights: Array<Array<number>> = JSON.parse(resultsRecord.resultHeights)
+            const queryData: Array<DatabaseContextQuery> = texts.map((text: string, i) => {
+                const q = new DatabaseContextQuery
+                q.text = text
+                q.results = results[i]
+                q.resultHeights = resultHeights[i]
+                return q
             })
+
+            // Create a database context for this database
+            const sqlDB = new SqlJsDBWrapper(definitionRecord.definition)
+            const context = new DatabaseContext(
+                database.id as number,
+                database.name,
+                database,
+                texts,
+                sqlDB,
+                queryData
+            )
+            await context.loadTables()
+
+            // Add and return the context
+            this.contexts.push(context)
+            return context
         },
         async delete(id: number) {
             // Make sure it's safe to proceed

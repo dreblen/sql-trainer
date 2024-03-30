@@ -213,18 +213,24 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
      */
     public exportToJSON (): Promise<string> {
         if (this.isWorker) {
-            return new Promise(async (resolve, reject) => {
-                const worker = await this.getWorker(resolve, reject)
-                worker.postMessage({
-                    type: 'exportToJSON'
-                })
+            return new Promise((resolve, reject) => {
+                this.getWorker(resolve, reject)
+                    .then((worker) => {
+                        worker.postMessage({
+                            type: 'exportToJSON'
+                        })
+                    })
+                    .catch(reject)
             })
         } else {
-            return new Promise(async (resolve, reject) => {
+            return new Promise((resolve, reject) => {
                 try {
-                    const db = await this.getSqlJsDB()
-                    const asArray = Array.from(db.export())
-                    resolve(JSON.stringify(asArray))
+                    this.getSqlJsDB()
+                        .then((db) => {
+                            const asArray = Array.from(db.export())
+                            resolve(JSON.stringify(asArray))
+                        })
+                        .catch(reject)
                 } catch (e) {
                     reject(e)
                 }
@@ -239,11 +245,14 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
      */
     public async exportToHash (): Promise<string> {
         if (this.isWorker) {
-            return new Promise(async (resolve, reject) => {
-                const worker = await this.getWorker(resolve, reject)
-                worker.postMessage({
-                    type: 'exportToHash'
-                })
+            return new Promise((resolve, reject) => {
+                this.getWorker(resolve, reject)
+                    .then((worker) => {
+                        worker.postMessage({
+                            type: 'exportToHash'
+                        })
+                    })
+                    .catch(reject)
             })
         } else {
             return HashWrapper.getHashString(await this.exportToJSON())
@@ -259,12 +268,15 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
      */
     public async exec (sql: string): Promise<Array<SqlJsTypes.QueryExecResult>> {
         if (this.isWorker) {
-            return new Promise(async (resolve, reject) => {
-                const worker = await this.getWorker(resolve, reject)
-                worker.postMessage({
-                    type: 'exec',
-                    sql
-                })
+            return new Promise((resolve, reject) => {
+                this.getWorker(resolve, reject)
+                    .then((worker) => {
+                        worker.postMessage({
+                            type: 'exec',
+                            sql
+                        })
+                    })
+                    .catch(reject)
             })
         } else {
             return (await this.getSqlJsDB()).exec(sql)
@@ -282,15 +294,20 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
         if (this.isWorker && this.worker !== null) {
             // Don't worry about waiting for a valid lock, since we're trying
             // to forcibly close/dispose anyway
-            return new Promise(async (resolve, reject) => {
-                const worker = await this.getWorker(() => {
-                    worker.terminate()
+            return new Promise((resolve, reject) => {
+                let parentWorker: Worker
+                this.getWorker(() => {
+                    parentWorker.terminate()
                     this.worker = null
                     resolve()
                 }, reject, undefined, true)
-                worker.postMessage({
-                    type: 'close'
-                })
+                    .then((worker) => {
+                        parentWorker = worker
+                        worker.postMessage({
+                            type: 'close'
+                        })
+                    })
+                    .catch(reject)
             })
         } else {
             return (await this.getSqlJsDB()).close()
@@ -313,12 +330,15 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
      */
     public async runStatements (sql: string, onprogress?: (value: number, result?: SqlJsTypes.QueryExecResult) => void): Promise<Array<SqlJsTypes.QueryExecResult>> {
         if (this.isWorker) {
-            return new Promise(async (resolve, reject) => {
-                const worker = await this.getWorker(resolve, reject, onprogress)
-                worker.postMessage({
-                    type: 'runStatements',
-                    sql
-                })
+            return new Promise((resolve, reject) => {
+                this.getWorker(resolve, reject, onprogress)
+                    .then((worker) => {
+                        worker.postMessage({
+                            type: 'runStatements',
+                            sql
+                        })
+                    })
+                    .catch(reject)
             })
         } else {
             // Split our query text into individual statements and iterate them
