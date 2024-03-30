@@ -99,7 +99,7 @@ onmessage = async function (m) {
 
                     const statement = it.value
                     const rawSQL = statement.getSQL()
-                    const statementSQL = rawSQL.trimStart()
+                    const statementSQL = statement.getNormalizedSQL().trimStart()
 
                     // Store the column names (for SELECT-type queries)
                     const columns = statement.getColumnNames()
@@ -110,9 +110,15 @@ onmessage = async function (m) {
                         rows.push(statement.get())
                     }
 
-                    // Get the number of rows affected (for INSERT/UPDATE/
-                    // DELETE statements only, not SELECTs or DDL
-                    // statements)
+                    // Get the number of rows affected. This is only relevant
+                    // for INSERT/UPDATE/DELETE statements, not SELECT or DDL
+                    // statements. Because SQLite doesn't reset the rows
+                    // modified count when a non-qualifying statement is run, we
+                    // need to default to 0 rows affected and use the database
+                    // number only if we can determine that it's appropriate.
+                    // The normalized SQL statement should strip out any leading
+                    // comments, so we can reasonably guess the statement type
+                    // based on what it starts with.
                     let numRows = 0
                     if (statementSQL.startsWith('INSERT') || statementSQL.startsWith('UPDATE') || statementSQL.startsWith('DELETE')) {
                         numRows = db.getRowsModified()
