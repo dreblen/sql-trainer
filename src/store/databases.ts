@@ -627,13 +627,13 @@ export const useDatabasesStore = defineStore('databases', {
             // If we're in the middle of *actually* saving pending changes,
             // ignore this call
             if (this.isSavingContext === true) {
-                return new Promise((resolve) => { resolve(false) })
+                return Promise.resolve(false)
             }
             
             // Find the correct database context
             const context = this.contexts.find((context) => context.id === id)
             if (!context) {
-                return new Promise((resolve, reject) => { reject(`Could not find database context with ID ${id}`) })
+                return Promise.reject(`Could not find database context with ID ${id}`)
             }
 
             this.hasPendingChanges = true

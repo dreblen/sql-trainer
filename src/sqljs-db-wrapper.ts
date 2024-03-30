@@ -185,7 +185,7 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
             this.workerIsLocked = true
             this.worker.onmessage = onmessage
             this.worker.onerror = onerror
-            return new Promise((resolve) => { resolve(this.worker as Worker) })
+            return Promise.resolve(this.worker)
         }
     }
 
