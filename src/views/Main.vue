@@ -429,7 +429,39 @@
                             variant="outlined"
                             :hide-details="true"
                             class="mr-2"
-                        />
+                        >
+                            <template v-slot:append-inner>
+                                <v-btn
+                                    icon
+                                    variant="plain"
+                                >
+                                    <v-icon>mdi-filter-menu</v-icon>
+                                    <v-menu
+                                        activator="parent"
+                                        :close-on-content-click="false"
+                                    >
+                                        <v-list>
+                                            <v-list-item>
+                                                <template v-slot:prepend>
+                                                    <v-list-item-action>
+                                                        <v-checkbox-btn v-model="tableSummaryFilterSearchTables"></v-checkbox-btn>
+                                                    </v-list-item-action>
+                                                </template>
+                                                <v-list-item-title>Table Names</v-list-item-title>
+                                            </v-list-item>
+                                            <v-list-item>
+                                                <template v-slot:prepend>
+                                                    <v-list-item-action>
+                                                        <v-checkbox-btn v-model="tableSummaryFilterSearchColumns"></v-checkbox-btn>
+                                                    </v-list-item-action>
+                                                </template>
+                                                <v-list-item-title>Column Names</v-list-item-title>
+                                            </v-list-item>
+                                        </v-list>
+                                    </v-menu>
+                                </v-btn>
+                            </template>
+                        </v-text-field>
                     </v-list-item-title>
                 </v-list-item>
                 <v-list-group
@@ -514,6 +546,8 @@ export default {
             showTableSummaryDrawer: false,
             tableSummaryDrawerWidth: 256,
             tableSummaryFilterText: '',
+            tableSummaryFilterSearchTables: true,
+            tableSummaryFilterSearchColumns: true,
 
             autocompletionIsEnabled: false,
             isCodemirrorReloading: false,
@@ -564,10 +598,16 @@ export default {
             if (this.databasesStore.activeContext === null) {
                 return []
             } else {
+                // If we have no filter text, return all tables
+                if (this.tableSummaryFilterText === '') {
+                    return this.databasesStore.activeContext.tables
+                }
+
+                // Otherwise, filter based on the active text and options
                 return this.databasesStore.activeContext.tables.filter(
                     (table) =>
-                    table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase()) ||
-                    table.columns.reduce((prev, col) => {
+                    (this.tableSummaryFilterSearchTables && table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())) ||
+                    (this.tableSummaryFilterSearchColumns && table.columns.reduce((prev, col) => {
                         // If we've already found a match, no further checks
                         if (prev === true) {
                             return true
@@ -576,7 +616,7 @@ export default {
                         // Test whether or not this column name includes our
                         // search text
                         return col.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
-                    }, false)
+                    }, false))
                 )
             }
         },
