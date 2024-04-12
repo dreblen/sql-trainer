@@ -457,6 +457,14 @@
                                                 </template>
                                                 <v-list-item-title>Column Names</v-list-item-title>
                                             </v-list-item>
+                                            <v-list-item>
+                                                <template v-slot:prepend>
+                                                    <v-list-item-action>
+                                                        <v-checkbox-btn v-model="tableSummaryFilterSearchForeignKeys"></v-checkbox-btn>
+                                                    </v-list-item-action>
+                                                </template>
+                                                <v-list-item-title>Foreign Keys</v-list-item-title>
+                                            </v-list-item>
                                         </v-list>
                                     </v-menu>
                                 </v-btn>
@@ -516,7 +524,16 @@
                             </span>
                         </v-list-item-subtitle>
                         <v-list-item-subtitle v-if="column.fk" :style="{fontSize: `${databasesStore.scaledFontSizeOverride * 0.75}pt`, lineHeight: 'normal'}">
-                            {{ `(${column.fk})` }}
+                            <template v-if="tableSummaryFilterText === '' || !tableSummaryFilterSearchForeignKeys">
+                                {{ `(${column.fk})` }}
+                            </template>
+                            <span v-else v-html="'('+
+                                column.fk.replaceAll(
+                                    new RegExp(tableSummaryFilterText, 'gi'),
+                                    `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                    )
+                                +')'"
+                            />
                         </v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item
@@ -564,6 +581,7 @@ export default {
             tableSummaryFilterText: '',
             tableSummaryFilterSearchTables: true,
             tableSummaryFilterSearchColumns: true,
+            tableSummaryFilterSearchForeignKeys: true,
 
             autocompletionIsEnabled: false,
             isCodemirrorReloading: false,
@@ -632,6 +650,21 @@ export default {
                         // Test whether or not this column name includes our
                         // search text
                         return col.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
+                    }, false)) ||
+                    (this.tableSummaryFilterSearchForeignKeys && table.columns.reduce((prev, col) => {
+                        // If we've already found a match, no further checks
+                        if (prev === true) {
+                            return true
+                        }
+
+                        // If we have no foreign key, no further checks
+                        if (col.fk === null) {
+                            return false
+                        }
+
+                        // Test whether or not this column's foreign key name
+                        // includes our search text
+                        return col.fk.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
                     }, false))
                 )
             }
