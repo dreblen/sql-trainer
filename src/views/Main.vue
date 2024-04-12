@@ -299,8 +299,10 @@
                                         </v-data-table-virtual>
                                     </template>
                                     <template v-else>
-                                        <div style="height: 100px;" class="pa-3">
-                                            {{ `${resultset.values[0]} row(s) affected.` }}
+                                        <div style="min-height: 100px;" class="pa-3">
+                                            <span :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`}">
+                                                {{ `${resultset.values[0]} row(s) affected.` }}
+                                            </span>
                                         </div>
                                     </template>
                                 </v-card>
@@ -440,7 +442,7 @@
                             v-bind="props"
                             style="background: grey; color: white;"
                         >
-                            <v-list-item-title>
+                            <v-list-item-title :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`, lineHeight: 'normal'}">
                                 <v-icon v-if="table.columns.length > 0 && table.columns[0].name === 'Error Loading Data'">
                                     mdi-alert-circle
                                 </v-icon>
@@ -456,14 +458,16 @@
                         :key="column.id"
                         :append-icon="column.isPK ? 'mdi-key' : undefined"
                     >
-                        <v-list-item-title>{{ column.name }}</v-list-item-title>
-                        <v-list-item-subtitle>
+                        <v-list-item-title :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`, lineHeight: 'normal'}">
+                            {{ column.name }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle :style="{fontSize: `${databasesStore.scaledFontSizeOverride * 0.9}pt`, lineHeight: 'normal'}">
                             {{ column.type }}
                             <span v-if="column.name !== 'Error Loading Data'">
                                 {{ `, ${column.allowNull ? 'NULL' : 'NOT NULL'}` }}
                             </span>
                         </v-list-item-subtitle>
-                        <v-list-item-subtitle v-if="column.fk">
+                        <v-list-item-subtitle v-if="column.fk" :style="{fontSize: `${databasesStore.scaledFontSizeOverride * 0.75}pt`, lineHeight: 'normal'}">
                             {{ `(${column.fk})` }}
                         </v-list-item-subtitle>
                     </v-list-item>

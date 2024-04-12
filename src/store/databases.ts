@@ -307,6 +307,12 @@ export const useDatabasesStore = defineStore('databases', {
         isAutocompletionEnabled: false
     }),
     getters: {
+        // In some situations, we want a smaller version of the specified font
+        // size. The calculation is made so that the only a portion of the
+        // increase or decrease beyond 12pt is used.
+        scaledFontSizeOverride(state): number {
+            return 12 + (0.25 * (state.fontSizeOverride - 12))
+        },
         activeContext(state): DatabaseContext|null {
             if (state.activeContextId === -1) {
                 return null
