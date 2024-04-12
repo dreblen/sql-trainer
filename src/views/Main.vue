@@ -478,7 +478,15 @@
                                 <v-icon v-if="table.columns.length > 0 && table.columns[0].name === 'Error Loading Data'">
                                     mdi-alert-circle
                                 </v-icon>
-                                {{ table.name }}
+                                <template v-if="tableSummaryFilterText === '' || !tableSummaryFilterSearchTables">
+                                    {{ table.name }}
+                                </template>
+                                <span v-else v-html="
+                                    table.name.replaceAll(
+                                        new RegExp(tableSummaryFilterText, 'gi'),
+                                        `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                        )"
+                                />
                                 <v-icon v-if="table.type === 'view'">
                                     mdi-alpha-v-box-outline
                                 </v-icon>
@@ -491,7 +499,15 @@
                         :append-icon="column.isPK ? 'mdi-key' : undefined"
                     >
                         <v-list-item-title :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`, lineHeight: 'normal'}">
-                            {{ column.name }}
+                            <template v-if="tableSummaryFilterText === '' || !tableSummaryFilterSearchColumns">
+                                {{ column.name }}
+                            </template>
+                            <span v-else v-html="
+                                column.name.replaceAll(
+                                    new RegExp(tableSummaryFilterText, 'gi'),
+                                    `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                    )"
+                            />
                         </v-list-item-title>
                         <v-list-item-subtitle :style="{fontSize: `${databasesStore.scaledFontSizeOverride * 0.9}pt`, lineHeight: 'normal'}">
                             {{ column.type }}
