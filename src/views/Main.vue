@@ -565,7 +565,18 @@ export default {
                 return []
             } else {
                 return this.databasesStore.activeContext.tables.filter(
-                    (table) => table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
+                    (table) =>
+                    table.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase()) ||
+                    table.columns.reduce((prev, col) => {
+                        // If we've already found a match, no further checks
+                        if (prev === true) {
+                            return true
+                        }
+
+                        // Test whether or not this column name includes our
+                        // search text
+                        return col.name.toLowerCase().includes(this.tableSummaryFilterText.toLowerCase())
+                    }, false)
                 )
             }
         },
