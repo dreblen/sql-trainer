@@ -492,7 +492,7 @@
                                 <span v-else v-html="
                                     table.name.replaceAll(
                                         new RegExp(tableSummaryFilterText, 'gi'),
-                                        `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                        replacerHighlightMatch
                                         )"
                                 />
                                 <v-icon v-if="table.type === 'view'">
@@ -513,7 +513,7 @@
                             <span v-else v-html="
                                 column.name.replaceAll(
                                     new RegExp(tableSummaryFilterText, 'gi'),
-                                    `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                    replacerHighlightMatch
                                     )"
                             />
                         </v-list-item-title>
@@ -530,7 +530,7 @@
                             <span v-else v-html="'('+
                                 column.fk.replaceAll(
                                     new RegExp(tableSummaryFilterText, 'gi'),
-                                    `<span style='background: yellow; color: black; border-radius: 2px;'>${tableSummaryFilterText}</span>`
+                                    replacerHighlightMatch
                                     )
                                 +')'"
                             />
@@ -932,6 +932,9 @@ export default {
                 }
                 return o
             })
+        },
+        replacerHighlightMatch: function (match: string) {
+            return `<span style='background: yellow; color: black; border-radius: 2px;'>${match}</span>`
         }
     },
     async mounted() {
