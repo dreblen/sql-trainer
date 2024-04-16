@@ -312,9 +312,12 @@
                     <template v-if="databasesStore.activeQuery.error !== ''">
                         <v-row>
                             <v-col>
-                                <v-card>
-                                    <v-card-title>Query Error</v-card-title>
-                                    <v-card-text>{{ databasesStore.activeQuery.error }}</v-card-text>
+                                <v-card variant="outlined" color="error">
+                                    <div style="min-height: 100px;" class="pa-3">
+                                        <span :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`}">
+                                            {{ 'Error: ' + databasesStore.activeQuery.error }}
+                                        </span>
+                                    </div>
                                 </v-card>
                             </v-col>
                         </v-row>
