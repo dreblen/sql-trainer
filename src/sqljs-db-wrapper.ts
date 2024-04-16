@@ -386,13 +386,12 @@ export class SqlJsDBWrapper implements ISqlJsDBWrapper {
                         // relevant for INSERT/UPDATE/DELETE statements, not
                         // SELECT or DDL statements. Because SQLite doesn't
                         // reset the rows modified count when a non-qualifying
-                        // statement is run, we need to default to 0 rows
-                        // affected and use the database number only if we can
-                        // determine that it's appropriate. The normalized SQL
-                        // statement should strip out any leading comments, so
-                        // we can reasonably guess the statement type based on
-                        // what it starts with.
-                        let numRows = 0
+                        // statement is run, we use the database number only if
+                        // we can determine that it's appropriate. The
+                        // normalized SQL statement should strip out any leading
+                        // comments, so we can reasonably guess the statement
+                        // type based on what it starts with.
+                        let numRows = -1
                         if (statementSQL.startsWith('INSERT') || statementSQL.startsWith('UPDATE') || statementSQL.startsWith('DELETE')) {
                             numRows = db.getRowsModified()
                         }

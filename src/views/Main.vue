@@ -298,10 +298,21 @@
                                             </template>
                                         </v-data-table-virtual>
                                     </template>
+                                    <!-- If we had no columns, we're displaying
+                                    a status message instead of a result set -->
                                     <template v-else>
                                         <div style="min-height: 100px;" class="pa-3">
                                             <span :style="{fontSize: `${databasesStore.scaledFontSizeOverride}pt`}">
-                                                {{ `${resultset.values[0]} row(s) affected.` }}
+                                                <!-- A value of -1 for rows
+                                                affected means it was a
+                                                statement type that doesn't tell
+                                                us something meaningful here -->
+                                                <template v-if="resultset.values[0][0] === -1">
+                                                    Success.
+                                                </template>
+                                                <template v-else>
+                                                    {{ `${resultset.values[0][0]} row(s) affected.` }}
+                                                </template>
                                             </span>
                                         </div>
                                     </template>
