@@ -9,13 +9,13 @@
     "dependencies": "node src/package-license-helper.js"
   },
   "dependencies": {
-    "@codemirror/lang-sql": "^6.5.4",
+    "@codemirror/lang-sql": "^6.10.0",
     "@mdi/font": "7.0.96",
-    "codemirror": "^6.0.1",
+    "codemirror": "^6.0.2",
     "jszip": "^3.10.1",
     "pinia": "^2.1.6",
     "roboto-fontface": "^0.10.0",
-    "sql.js": "^1.10.1",
+    "sql.js": "^1.13.0",
     "vue": "^3.2.0",
     "vue-codemirror": "^6.1.1",
     "vue-router": "^4.2.4",
