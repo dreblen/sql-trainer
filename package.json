@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.10.0",
-    "@mdi/font": "7.0.96",
+    "@mdi/font": "7.4.47",
     "codemirror": "^6.0.2",
     "jszip": "^3.10.1",
     "pinia": "^2.1.6",
@@ -28,7 +28,7 @@
     "@types/jszip": "^3.4.1",
     "@types/node": "^18.17.15",
     "@types/sql.js": "^1.4.8",
-    "@types/webfontloader": "^1.6.35",
+    "@types/webfontloader": "^1.6.38",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/eslint-config-typescript": "^12.0.0",
     "eslint": "^8.49.0",
