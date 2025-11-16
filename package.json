@@ -14,7 +14,7 @@
     "@mdi/font": "7.4.47",
     "codemirror": "^6.0.2",
     "jszip": "^3.10.1",
-    "pinia": "^2.1.6",
+    "pinia": "^3.0.4",
     "roboto-fontface": "^0.10.0",
     "sql.js": "^1.13.0",
     "vue": "^3.5.24",
