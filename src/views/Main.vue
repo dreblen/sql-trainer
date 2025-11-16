@@ -287,13 +287,13 @@
                                                 :key="i"
                                                 v-slot:[`item.${i.toString()}`]="{ item }"
                                             >
-                                                <span v-if="item.columns[i.toString()] === null">
+                                                <span v-if="item[i.toString()] === null">
                                                     <v-chip color="#885400">
                                                         NULL
                                                     </v-chip>
                                                 </span>
                                                 <span v-else style="white-space: nowrap;">
-                                                    <pre>{{ item.columns[i.toString()] }}</pre>
+                                                    <pre>{{ item[i.toString()] }}</pre>
                                                 </span>
                                             </template>
                                         </v-data-table-virtual>
@@ -363,7 +363,7 @@
                             >
                                 <v-col>
                                     <v-file-input
-                                        v-model="addDatabaseDialogFiles"
+                                        v-model="addDatabaseDialogFile"
                                         :loading="addDatabaseDialogFileLoading"
                                         :disabled="addDatabaseDialogFileLoading"
                                         accept=".zip,.sql,text/plain"
@@ -582,7 +582,7 @@ export default {
             ],
             addDatabaseDialogStartFromSelection: 1,
             addDatabaseDialogFileLoading: false,
-            addDatabaseDialogFiles: [] as Array<File>,
+            addDatabaseDialogFile: null as File|null,
             addDatabaseDialogFileTexts: [] as Array<string>,
             addDatabaseDialogName: '',
             addDatabaseDialogIsSaving: false,
@@ -734,9 +734,9 @@ export default {
                 }
             }
         },
-        addDatabaseDialogFiles: async function (files) {
+        addDatabaseDialogFile: async function (file) {
             // If we don't have a selection, there's nothing to do
-            if (!files || files.length === 0) {
+            if (!file) {
                 return
             }
 
@@ -745,7 +745,6 @@ export default {
 
             // We don't allow selection of multiples, so we always want the
             // first file in the list
-            const file = files[0]
             const fileBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
                 const reader = new FileReader()
                 reader.onabort = (ev) => {
@@ -862,7 +861,7 @@ export default {
 
                 // Reset the dialog values
                 this.addDatabaseDialogStartFromSelection = 1
-                this.addDatabaseDialogFiles = []
+                this.addDatabaseDialogFile = null
                 this.addDatabaseDialogFileTexts = []
                 this.addDatabaseDialogName = ''
                 this.showAddDatabaseDialog = false

@@ -1,12 +1,13 @@
 {
   "name": "sql-trainer",
+  "type": "module",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix --ignore-path .gitignore",
-    "dependencies": "node src/package-license-helper.js"
+    "dependencies": "node src/package-license-helper.cjs"
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.10.0",
@@ -16,10 +17,10 @@
     "pinia": "^2.1.6",
     "roboto-fontface": "^0.10.0",
     "sql.js": "^1.13.0",
-    "vue": "^3.2.0",
+    "vue": "^3.3.13",
     "vue-codemirror": "^6.1.1",
-    "vue-router": "^4.2.4",
-    "vuetify": "^3.3.16",
+    "vue-router": "^4.2.5",
+    "vuetify": "^3.4.11",
     "webfontloader": "^1.6.28"
   },
   "devDependencies": {
@@ -28,13 +29,13 @@
     "@types/node": "^18.17.15",
     "@types/sql.js": "^1.4.8",
     "@types/webfontloader": "^1.6.35",
-    "@vitejs/plugin-vue": "^4.3.4",
+    "@vitejs/plugin-vue": "^5.0.5",
     "@vue/eslint-config-typescript": "^12.0.0",
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.17.0",
     "typescript": "^5.2.2",
-    "vite": "^4.4.9",
-    "vite-plugin-vuetify": "^1.0.2",
-    "vue-tsc": "^1.8.11"
+    "vite": "^5.0.11",
+    "vite-plugin-vuetify": "^2.0.4",
+    "vue-tsc": "^1.8.27"
   }
 }
