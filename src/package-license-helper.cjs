@@ -48,6 +48,18 @@ async function main () {
         })
     }
 
+    // Sort our results so we don't have unnecessary diffs just because of
+    // random sort order
+    results.sort((a, b) => {
+        if (a.name < b.name) {
+            return -1
+        }
+        if (a.name > b.name) {
+            return 1
+        }
+        return 0
+    })
+
     // Store our results in a separate JSON file (we intentionally do not catch
     // the potential error so it gets reported with full exception details)
     await fs.writeFile('src/package-licenses.json', JSON.stringify(results))
