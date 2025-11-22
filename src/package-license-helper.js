@@ -4,8 +4,8 @@
  * separate JSON file that can be read by the app to display licenses for
  * bundled packages.
  */
-const PackageJson = require('../package.json')
-const fs = require('fs').promises
+import PackageJson from '../package.json' with {type: 'json'}
+import fs from 'fs/promises'
 
 // We will look for files with one of these names, in order, when 
 const licenseFiles = [
