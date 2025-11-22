@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --fix --ignore-path .gitignore",
+    "lint": "eslint . --fix --ignore-pattern '.gitignore' --ignore-pattern 'dist/'",
     "dependencies": "node src/package-license-helper.cjs"
   },
   "dependencies": {
